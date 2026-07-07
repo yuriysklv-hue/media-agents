@@ -29,6 +29,13 @@ def load_prompt(name: str) -> str:
     return (PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
 
 
+def fill_prompt(template: str, **values: str) -> str:
+    """Подставляет {key} → value. Не str.format: в промптах есть литеральные {}."""
+    for key, value in values.items():
+        template = template.replace("{" + key + "}", str(value))
+    return template
+
+
 def ensure_data_dirs() -> None:
     """Создаёт дерево data/ при первом запуске."""
     for sub in (
