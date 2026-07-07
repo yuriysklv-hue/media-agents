@@ -1,0 +1,30 @@
+rss_feeds:
+  - name: Adweek
+    url: https://www.adweek.com/feed/
+    language: en
+    region: world
+    enabled: true
+
+  - name: AdExchanger
+    url: https://www.adexchanger.com/feed/
+    language: en
+    region: world
+    enabled: true
+
+  - name: Digiday
+    url: https://digiday.com/feed/
+    language: en
+    region: world
+    enabled: true
+
+  - name: MediaPost TV
+    url: http://feeds.mediapost.com/television-news-daily/
+    language: en
+    region: world
+    enabled: true
+
+  - name: MediaPost Media
+    url: http://feeds.mediapost.com/mediadailynews/
+    language: en
+    region: world
+    enabled: true

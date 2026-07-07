@@ -1,0 +1,90 @@
+# Используется в Pre-Filter (уровень 1: keyword scoring)
+# Валидирована в production: 67-85% эффективности фильтрации
+
+core_adtech:
+  weight_in_title: 30
+  weight_in_desc: 20
+  keywords:
+    - programmatic
+    - DSP
+    - SSP
+    - ad exchange
+    - RTB
+    - retail media
+    - CTV
+    - OTT
+    - AI advertising
+    - LLM
+    - attribution
+    - measurement
+    - privacy
+    - cookie
+
+platforms:
+  weight_in_title: 20
+  weight_in_desc: 10
+  keywords:
+    - Google
+    - Meta              # запрещён в РФ
+    - Amazon
+    - TikTok
+    - Apple
+    - Microsoft
+    - OpenAI
+    - Netflix
+    - Reddit
+    - Spotify
+    - YouTube
+
+advertising_general:
+  weight_in_title: 10
+  weight_in_desc: 5
+  keywords:
+    - advertising
+    - ads
+    - advertisers
+    - CMO
+    - CPM
+    - CTR
+    - adtech
+    - martech
+    - media buying
+    - analytics
+
+generic_industry:
+  weight_in_title: 5
+  weight_in_desc: 3
+  keywords:
+    - merger
+    - acquisition
+    - IPO
+    - funding
+    - layoff
+    - CEO
+    - earnings
+    - revenue
+    - stock
+
+# Темы, которые отбрасываем даже при ненулевом скору
+exclusions:
+  - sport ads
+  - creative campaigns
+  - crypto
+  - gaming
+  - print
+  - billboard
+
+# Признак news roundup в заголовке (3+ semicolons)
+roundup_semicolon_threshold: 3
+
+# Ключевые слова, которые перепроверяют exclusion
+override_keywords:
+  - programmatic
+  - DSP
+  - SSP
+  - retail media
+  - CTV
+  - AI advertising
+
+# Порог прохождения
+score_threshold: 20

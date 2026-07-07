@@ -1,0 +1,11 @@
+feedparser>=6.0
+requests>=2.31
+trafilatura>=1.12          # Извлечение полного текста статьи из URL
+openai>=1.40               # DeepSeek и GLM — оба OpenAI-compatible
+numpy>=1.26                # Cosine similarity для дедупликации
+pyyaml>=6.0
+python-dotenv>=1.0
+gitpython>=3.1             # Git-операции для publisher
+pydantic>=2.0              # Валидация схем данных
+python-slugify>=8.0        # Транслит для slug-генерации
+tenacity>=8.2              # Retry с экспоненциальной задержкой

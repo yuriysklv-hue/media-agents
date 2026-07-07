@@ -1,0 +1,23 @@
+# Редакционные службы (авторы статей на сайте).
+# Файлы авторов уже созданы на сайте: media-site/src/content/authors/{id}.md
+# (у сайта схема требует name/role/bio/initials + team: true — здесь только маппинг).
+
+authors:
+  - id: news-world
+    name: "Служба новостей Мир"
+  - id: news-ru
+    name: "Служба новостей Россия"
+  - id: news-asia
+    name: "Служба новостей Азия"
+
+# Маппинг: категория статьи → автор (ID из списка выше)
+# Enricher использует этот маппинг для проставления author в front-matter
+category_author_map:
+  adtech-world: news-world
+  adtech-ru: news-ru
+  adtech-asia: news-asia
+  market-news: news-world    # мировой market-news → Служба новостей Мир
+  tools: news-world
+  creative: news-world
+
+default_author: news-world

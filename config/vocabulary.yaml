@@ -1,0 +1,64 @@
+# Контролируемый словарь для Enricher
+# Расширяется по мере накопления публикаций.
+# ВАЖНО: категории — контракт с сайтом (media-site/src/lib/categories.ts, z.enum в схеме).
+# Новую категорию сначала добавить на сайте, потом сюда.
+
+categories:
+  - adtech-ru        # Российский adtech
+  - adtech-world     # Мировой adtech (дефолт для западных новостей)
+  - adtech-asia      # Азиатский рынок
+  - market-news      # M&A, earnings, инвестиции
+  - tools            # Релизы инструментов
+  - creative         # Креативные кейсы
+
+geo_values:
+  - РФ
+  - МИР
+  - АЗИЯ
+
+# Стартовый словарь тегов (из системы скоринга)
+# Enricher может предлагать новые теги, но они проходят валидацию
+tags:
+  # AdTech core
+  - programmatic
+  - DSP
+  - SSP
+  - RTB
+  - ad-exchange
+  - retail-media
+  - CTV
+  - OTT
+  - native-ads
+  - search-ads
+  - display-ads
+  - video-ads
+  - audio-ads
+  # AI & Measurement
+  - AI-advertising
+  - LLM
+  - attribution
+  - measurement
+  - privacy
+  - cookieless
+  - identity
+  # Platforms
+  - Google
+  - Meta              # запрещён в РФ
+  - Amazon
+  - TikTok
+  - Apple
+  - Microsoft
+  - OpenAI
+  - Netflix
+  - Reddit
+  - Spotify
+  - YouTube
+  # Business
+  - M&A
+  - earnings
+  - funding
+  - layoffs
+  - IPO
+  - regulation
+  - GDPR
+  - CCPA

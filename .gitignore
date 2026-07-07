@@ -1,0 +1,11 @@
+# Промежуточные данные пайплайна — не версионируются.
+# data/state/ и data/published/ НАМЕРЕННО не в ignore: GitHub Actions коммитит их
+# после каждого прогона — это персистентность дедупликации между запусками.
+data/inbox/
+data/drafts/
+data/logs/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+media-clone/               # Локальный клон репо media для publisher

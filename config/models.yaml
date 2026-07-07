@@ -1,0 +1,32 @@
+# Маршрутизация моделей по этапам пайплайна
+# Все провайдеры — OpenAI-compatible API
+
+deepseek:
+  base_url: https://api.deepseek.com/v1
+  models:
+    chat: deepseek-chat          # DeepSeek-V3
+    reasoner: deepseek-reasoner  # DeepSeek-R1, для длинных текстов
+
+glm:
+  base_url: https://open.bigmodel.cn/api/paas/v4
+  models:
+    flash: glm-4-flash           # Бесплатный tier
+    embedding: embedding-3       # Embeddings для дедупликации
+
+anthropic:                        # Заложено на будущее, MVP не использует
+  base_url: https://api.anthropic.com/v1
+  models:
+    sonnet: claude-sonnet-5
+    opus: claude-opus-4-8
+
+# Назначения
+pipeline:
+  pre_filter: glm:flash
+  translator: deepseek:chat
+  translator_long: deepseek:reasoner   # тексты длиннее ~8K токенов
+  filter_dedup_embedding: glm:embedding
+  filter_dedup_classify: glm:flash
+  news_writer: deepseek:chat
+  digest_writer: deepseek:chat
+  enricher: glm:flash
+  qa_style: glm:flash
