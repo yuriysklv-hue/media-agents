@@ -8,9 +8,11 @@ deepseek:
     reasoner: deepseek-reasoner  # DeepSeek-R1, для длинных текстов
 
 glm:
+  # Дефолт — open.bigmodel.cn. Для z.ai (платная подписка) переопределить в .env:
+  # ZHIPU_BASE_URL, GLM_FLASH_MODEL, GLM_EMBEDDING_MODEL (см. .env.example).
   base_url: https://open.bigmodel.cn/api/paas/v4
   models:
-    flash: glm-4-flash           # Бесплатный tier
+    flash: glm-4-flash           # Бесплатный tier (z.ai: glm-4.5-flash)
     embedding: embedding-3       # Embeddings для дедупликации
 
 anthropic:                        # Заложено на будущее, MVP не использует

@@ -25,6 +25,14 @@ API_KEY_ENV = {
     "anthropic": "ANTHROPIC_API_KEY",
 }
 
+# Переопределение endpoint без правки config/models.yaml — для смены платформы
+# GLM (open.bigmodel.cn ↔ z.ai) или прокси DeepSeek.
+BASE_URL_ENV = {
+    "deepseek": "DEEPSEEK_BASE_URL",
+    "glm": "ZHIPU_BASE_URL",
+    "anthropic": "ANTHROPIC_BASE_URL",
+}
+
 # Прайс: $ за 1M токенов (input, output). Проверять перед запуском:
 # DeepSeek — platform.deepseek.com, GLM — open.bigmodel.cn, Anthropic — platform.claude.com.
 PRICING = {
@@ -49,7 +57,8 @@ class LLMClient:
         """
         self.provider = provider
         config = config or load_config("models")
-        self.base_url = config[provider]["base_url"]
+        # env-override приоритетнее config — переключение платформы без правки кода.
+        self.base_url = os.environ.get(BASE_URL_ENV[provider], "").strip() or config[provider]["base_url"]
         self.api_key = self._get_api_key(provider)
         self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         self.state = state or StateManager()
@@ -135,11 +144,21 @@ class LLMClient:
         return response.data[0].embedding
 
 
+# Переопределение имён моделей без правки config/models.yaml (напр. для z.ai,
+# где flash называется glm-4.5-flash). Формат env: <PROVIDER>_<ALIAS>_MODEL.
+def _model_env(provider: str, alias: str) -> str | None:
+    return os.environ.get(f"{provider.upper()}_{alias.upper()}_MODEL", "").strip() or None
+
+
 def resolve_model(assignment: str, config: dict | None = None) -> tuple[str, str]:
-    """'glm:flash' из pipeline-секции models.yaml → ('glm', 'glm-4-flash')."""
+    """'glm:flash' из pipeline-секции models.yaml → ('glm', 'glm-4-flash').
+
+    Имя модели можно переопределить env-переменной, напр. GLM_FLASH_MODEL=glm-4.5-flash.
+    """
     config = config or load_config("models")
     provider, alias = assignment.split(":", 1)
-    return provider, config[provider]["models"][alias]
+    model = _model_env(provider, alias) or config[provider]["models"][alias]
+    return provider, model
 
 
 def pipeline_client(stage: str, state: StateManager | None = None) -> tuple[LLMClient, str]:

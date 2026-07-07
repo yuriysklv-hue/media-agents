@@ -27,10 +27,26 @@ cp .env.example .env   # заполнить ключи
 | Переменная | Где взять |
 |---|---|
 | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com/) |
-| `ZHIPU_API_KEY` | [open.bigmodel.cn](https://open.bigmodel.cn) → API Keys (GLM-4-Flash бесплатен) |
+| `ZHIPU_API_KEY` | GLM-ключ (см. «Две платформы GLM» ниже) |
 | `GH_TOKEN` | GitHub PAT с правами `repo` + `pull-requests` на репо `media` |
 | `MEDIA_REPO` | `yuriysklv-hue/media` |
 | `MEDIA_SITE_SUBDIR` | `media-site` |
+
+### Две платформы GLM
+
+У Zhipu два независимых API-контура с разными endpoint и именами моделей:
+
+- **open.bigmodel.cn** (Китай, нужен китайский телефон) — дефолт в `config/models.yaml`, endpoint `…bigmodel.cn/api/paas/v4`, модель `glm-4-flash`. Достаточно указать `ZHIPU_API_KEY`.
+- **z.ai** (международная платная подписка) — endpoint `api.z.ai/api/paas/v4`, flash-модель называется `glm-4.5-flash`. Переопределяется через `.env` без правки кода:
+
+  ```bash
+  ZHIPU_API_KEY=<ключ z.ai>
+  ZHIPU_BASE_URL=https://api.z.ai/api/paas/v4
+  GLM_FLASH_MODEL=glm-4.5-flash
+  GLM_EMBEDDING_MODEL=embedding-3   # если z.ai не отдаёт эмбеддинги — дедуп деградирует до URL
+  ```
+
+Endpoint переопределяется env-переменными `ZHIPU_BASE_URL` / `DEEPSEEK_BASE_URL`, имена моделей — `GLM_FLASH_MODEL` / `GLM_EMBEDDING_MODEL` (формат `<PROVIDER>_<ALIAS>_MODEL`).
 
 Без `ZHIPU_API_KEY` пайплайн работает в деградированном режиме (фильтрация только по ключевым словам, enricher-фолбэк, QA только rules-based). Без `DEEPSEEK_API_KEY` пайплайн останавливается — перевод и написание невозможны.
 
