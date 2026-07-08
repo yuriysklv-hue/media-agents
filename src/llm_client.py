@@ -10,8 +10,8 @@ import json
 import os
 import re
 
-from openai import OpenAI
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from openai import BadRequestError, NotFoundError, OpenAI
+from tenacity import retry, retry_if_exception, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from .utils.config import load_config
 from .utils.logger import get_logger
@@ -124,10 +124,18 @@ class LLMClient:
         )
         return response.choices[0].message.content or ""
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30), reraise=True)
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(min=2, max=30),
+        # 400/404 (неизвестная модель, платформа без эмбеддингов) — не транзиентны,
+        # повторять бессмысленно; ретраим только сетевые/5xx/429.
+        retry=retry_if_exception(lambda e: not isinstance(e, (BadRequestError, NotFoundError))),
+        reraise=True,
+    )
     def embed(self, model: str, text: str, stage: str = "embedding",
               item_id: str | None = None) -> list[float]:
-        """Embedding-вектор. Используется только для GLM embedding-3."""
+        """Embedding-вектор. На платформах без эмбеддингов (z.ai) вызов падает
+        с 400 — дедуп деградирует до URL-дедупа (см. filter_dedup)."""
         # embedding-3 принимает до ~3072 токенов — обрезаем длинные тексты.
         response = self.client.embeddings.create(model=model, input=text[:6000])
         usage = getattr(response, "usage", None)

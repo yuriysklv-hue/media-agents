@@ -76,6 +76,7 @@ def _embed_items(items: list[dict], state: StateManager):
         client, model = pipeline_client("filter_dedup_embedding", state)
     except LLMUnavailable:
         return None
+    from openai import BadRequestError, NotFoundError
     import numpy as np
 
     vectors = []
@@ -83,6 +84,11 @@ def _embed_items(items: list[dict], state: StateManager):
         text = f"{item['title_ru']}\n{item['summary_ru']}"
         try:
             vectors.append(client.embed(model, text, stage="filter_dedup", item_id=item["id"]))
+        except (BadRequestError, NotFoundError) as exc:
+            # Платформа без эмбеддингов (z.ai) — дальше пробовать смысла нет.
+            log.warning("модель эмбеддингов «%s» недоступна (%s) — семантический "
+                        "дедуп отключён, остаётся URL-дедуп", model, str(exc)[:100])
+            return None
         except Exception as exc:
             log.warning("embedding для %s не получен: %s", item["id"], exc)
             vectors.append(None)
