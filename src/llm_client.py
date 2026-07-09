@@ -90,6 +90,13 @@ class LLMClient:
             kwargs["temperature"] = temperature
         if response_format:
             kwargs["response_format"] = response_format
+        # GLM-4.5/4.6 на z.ai по умолчанию включают reasoning ("thinking"): модель
+        # тратит бюджет max_tokens на рассуждение и возвращает пустой content, из-за
+        # чего JSON-этапы (pre_filter/enricher/qa/dedup) падают на parse и уходят в
+        # фолбэк. Для наших задач рассуждение не нужно — отключаем его.
+        # Отменить можно через GLM_DISABLE_THINKING=0 (напр. если платформа его не примет).
+        if self.provider == "glm" and os.environ.get("GLM_DISABLE_THINKING", "1") != "0":
+            kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
         return self.client.chat.completions.create(**kwargs)
 
     def chat(
