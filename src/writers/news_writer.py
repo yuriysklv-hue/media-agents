@@ -10,6 +10,7 @@ from pathlib import Path
 from ..llm_client import pipeline_client
 from ..utils.config import DATA_DIR, fill_prompt, load_prompt
 from ..utils.frontmatter import render_markdown, split_front_matter
+from ..utils.legal import add_restricted_org_footnotes
 from ..utils.logger import get_logger
 from ..utils.state import StateManager
 
@@ -66,6 +67,7 @@ def write_news(event: dict, state: StateManager) -> Path:
     )
 
     meta, body = split_front_matter(answer)  # ValueError → событие в drafts/failed решает вызывающий
+    body = add_restricted_org_footnotes(body)  # сноска о запрещённых в РФ организациях
     # Источник и дата — из сырья, а не из фантазии модели.
     meta["source"] = {"title": primary["source_name"], "url": primary["source_url"]}
     if event.get("published_at"):
