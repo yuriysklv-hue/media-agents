@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from ..llm_client import LLMUnavailable, parse_json_response, pipeline_client
@@ -22,6 +23,30 @@ READING_WPM = 180  # слов в минуту для расчёта readingTime
 
 def _reading_time(body: str) -> int:
     return max(1, round(len(body.split()) / READING_WPM))
+
+
+_SENT_END = re.compile(r"[.!?…](?:\s|$)")
+
+
+def _fit_description(text: str, limit: int = 160) -> str:
+    """Укладывает описание в limit символов ЗАКОНЧЕННОЙ фразой.
+
+    Дескрипшен показывается как лид-абзац материала, поэтому обрыв посреди слова
+    («…необос…») недопустим. Сначала пробуем границу предложения в пределах
+    лимита; если содержательного куска нет — режем по границе слова и ставим «…»
+    (это уже честное усечение, а не обрыв середины слова).
+    """
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    window = text[:limit]
+    last_sentence = 0
+    for m in _SENT_END.finditer(window):
+        last_sentence = m.start() + 1  # включаем сам знак препинания
+    if last_sentence >= 80:  # кусок достаточно содержательный — обходимся без «…»
+        return window[:last_sentence].rstrip()
+    cut = window[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:—–-")
+    return (cut or window[: limit - 1].rstrip()) + "…"
 
 
 def _existing_slugs(state: StateManager, drafts_dir: Path) -> set[str]:
@@ -86,9 +111,7 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news") ->
     description = str(enriched.get("description") or meta.get("description") or "").strip()
     if not description:
         description = " ".join(body.split())  # фолбэк: начало тела одной строкой
-    if len(description) > 160:
-        description = description[:157].rstrip() + "…"
-    meta["description"] = description
+    meta["description"] = _fit_description(description)
 
     category = str(enriched.get("category") or meta.get("category") or "adtech-world")
     if category not in vocab["categories"]:

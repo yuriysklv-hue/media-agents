@@ -14,6 +14,7 @@ from ..llm_client import LLMUnavailable, parse_json_response, pipeline_client
 from ..utils.config import DATA_DIR, fill_prompt, load_prompt
 from ..utils.logger import get_logger
 from ..utils.state import StateManager, read_jsonl, utcnow_iso, write_jsonl
+from ..utils.text_similarity import title_similarity
 
 log = get_logger("filter_dedup")
 
@@ -23,6 +24,11 @@ CURATED_PATH = DATA_DIR / "inbox" / "curated_items.jsonl"
 RELEVANCE_THRESHOLD = 5
 DUP_SIMILARITY = 0.85
 CLUSTER_SIMILARITY = 0.75
+
+# Пороги текстового фолбэка (заголовки грубее эмбеддингов — берём консервативно,
+# чтобы не склеить разные сюжеты про один бренд).
+DUP_TITLE_SIMILARITY = 0.78      # дубль уже опубликованного
+CLUSTER_TITLE_SIMILARITY = 0.62  # одна новость из разных фидов → одно событие
 
 
 @dataclass
@@ -162,6 +168,43 @@ def _make_event(cluster: list[dict], state: StateManager) -> dict:
     }
 
 
+def _title_of(item: dict) -> str:
+    return item.get("title_ru") or item.get("title") or ""
+
+
+def _text_fallback_events(items: list[dict], state: StateManager, result: DedupResult) -> list[dict]:
+    """Дедуп/кластеризация по заголовкам, когда эмбеддинги недоступны.
+
+    1) Отсеиваем свежие items, чей заголовок близок к уже опубликованному.
+    2) Оставшиеся жадно кластеризуем между собой — одна новость из разных фидов
+       собирается в одно событие (writer сошлётся на оба источника).
+    """
+    pub_titles = [str(r.get("title", "")) for r in state.load_published() if r.get("title")]
+
+    fresh: list[dict] = []
+    for item in items:
+        title = _title_of(item)
+        if any(title_similarity(title, pt) >= DUP_TITLE_SIMILARITY for pt in pub_titles):
+            log.info("дубль опубликованного (по заголовку): %s", title[:70])
+            result.duplicates += 1
+            continue
+        fresh.append(item)
+
+    clusters: list[list[dict]] = []
+    for item in fresh:
+        title = _title_of(item)
+        for cluster in clusters:
+            if title_similarity(title, _title_of(cluster[0])) >= CLUSTER_TITLE_SIMILARITY:
+                cluster.append(item)
+                log.info("склеено в событие: «%s» ↔ «%s»",
+                         _title_of(cluster[0])[:50], title[:50])
+                break
+        else:
+            clusters.append([item])
+
+    return [_make_event(cluster, state) for cluster in clusters]
+
+
 def run_filter_dedup(state: StateManager) -> DedupResult:
     """translated_items.jsonl → curated_items.jsonl (уникальные события)."""
     import numpy as np
@@ -181,9 +224,9 @@ def run_filter_dedup(state: StateManager) -> DedupResult:
 
     matrix = _embed_items(items, state)
     if matrix is None:
-        log.warning("embeddings недоступны — семантическая дедупликация пропущена")
+        log.warning("embeddings недоступны — текстовый фолбэк-дедуп по заголовкам")
         result.embeddings_skipped = True
-        events = [_make_event([it], state) for it in items]
+        events = _text_fallback_events(items, state, result)
         write_jsonl(CURATED_PATH, events)
         result.events = len(events)
         return result
