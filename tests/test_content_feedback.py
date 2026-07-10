@@ -4,9 +4,48 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from datetime import datetime, timezone
+
 from src.processors.enricher import _fit_description
 from src.utils.legal import add_restricted_org_footnotes
 from src.utils.text_similarity import title_similarity
+from src.writers.news_writer import _finalize_meta
+
+
+# --- pubDate = момент выхода на 1screen, а не дата источника (задача 1b) ---
+
+def _event(published_at="2026-07-06T10:30:00Z"):
+    primary = {"source_name": "AdExchanger", "source_url": "https://adexchanger.com/x",
+               "published_at": published_at, "is_primary": True}
+    return {"event_id": "abc", "published_at": published_at, "sources": [primary]}, primary
+
+
+def test_pubdate_is_now_not_source_date():
+    event, primary = _event(published_at="2026-07-06T10:30:00Z")
+    meta = {"title": "x", "pubDate": "2026-07-06T10:30:00Z"}
+    _finalize_meta(meta, event, primary)
+    pub = datetime.fromisoformat(meta["pubDate"].replace("Z", "+00:00"))
+    # дата источника (06-07) не должна протекать в pubDate — ставится текущий UTC
+    assert pub.date() != datetime(2026, 7, 6, tzinfo=timezone.utc).date()
+    assert abs((datetime.now(timezone.utc) - pub).total_seconds()) < 120
+
+
+def test_pubdate_not_in_future_for_qa():
+    event, primary = _event()
+    meta = {"title": "x"}
+    _finalize_meta(meta, event, primary)
+    pub = datetime.fromisoformat(meta["pubDate"].replace("Z", "+00:00"))
+    # QA бракует pubDate в будущем (> now + 15 мин) — наш всегда в прошлом
+    assert pub <= datetime.now(timezone.utc)
+
+
+def test_finalize_sets_source_and_defaults():
+    event, primary = _event()
+    meta = {"title": "x"}
+    _finalize_meta(meta, event, primary)
+    assert meta["source"] == {"title": "AdExchanger", "url": "https://adexchanger.com/x"}
+    assert meta["category"] == "adtech-world"
+    assert meta["geo"] == ["МИР"]
 
 
 # --- сноска о запрещённых организациях ---

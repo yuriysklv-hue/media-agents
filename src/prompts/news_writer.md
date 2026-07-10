@@ -58,7 +58,7 @@ Front-matter:
 ---
 title: "Заголовок на русском (50-80 символов)"
 description: "Описание для SEO (до 160 символов)"
-pubDate: "{published_at}"
+pubDate: "AUTO"        # проставит пайплайн (момент выхода на 1screen) — оставь как есть
 category: "adtech-world"
 geo: ["МИР"]
 tags: []
