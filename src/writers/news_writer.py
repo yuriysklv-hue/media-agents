@@ -12,7 +12,7 @@ from ..utils.config import DATA_DIR, fill_prompt, load_prompt
 from ..utils.frontmatter import render_markdown, split_front_matter
 from ..utils.legal import add_restricted_org_footnotes
 from ..utils.logger import get_logger
-from ..utils.state import StateManager
+from ..utils.state import StateManager, utcnow_iso
 
 log = get_logger("news_writer")
 
@@ -48,6 +48,24 @@ def _sources_block(event: dict) -> str:
     return "\n".join(lines)
 
 
+def _finalize_meta(meta: dict, event: dict, primary: dict) -> dict:
+    """Детерминированная доводка front-matter после генерации модели.
+
+    Источник — из сырья, а не из фантазии модели. `pubDate` — момент выхода
+    материала на 1screen (UTC now), а НЕ дата публикации в источнике из RSS
+    (`event["published_at"]`): иначе статьи датируются задним числом, выглядят
+    несвежими, не зажигают live-точку на главной (isLive = моложе 3 ч) и тонут
+    внизу ленты (сортировка по pubDate убыв.). Дата источника не теряется —
+    паблишер сохраняет её в published.jsonl (`source_published_at`); во
+    front-matter она не идёт, чтобы не расширять контракт схемы сайта.
+    """
+    meta["source"] = {"title": primary["source_name"], "url": primary["source_url"]}
+    meta["pubDate"] = utcnow_iso()
+    meta.setdefault("category", "adtech-world")
+    meta.setdefault("geo", ["МИР"])
+    return meta
+
+
 def write_news(event: dict, state: StateManager) -> Path:
     """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher)."""
     client, model = pipeline_client("news_writer", state)
@@ -56,7 +74,6 @@ def write_news(event: dict, state: StateManager) -> Path:
     prompt = fill_prompt(
         load_prompt("news_writer"),
         sources_block=_sources_block(event),
-        published_at=event.get("published_at") or "",
         primary_source_name=primary["source_name"],
         primary_source_url=primary["source_url"],
     )
@@ -68,12 +85,7 @@ def write_news(event: dict, state: StateManager) -> Path:
 
     meta, body = split_front_matter(answer)  # ValueError → событие в drafts/failed решает вызывающий
     body = add_restricted_org_footnotes(body)  # сноска о запрещённых в РФ организациях
-    # Источник и дата — из сырья, а не из фантазии модели.
-    meta["source"] = {"title": primary["source_name"], "url": primary["source_url"]}
-    if event.get("published_at"):
-        meta["pubDate"] = event["published_at"]
-    meta.setdefault("category", "adtech-world")
-    meta.setdefault("geo", ["МИР"])
+    _finalize_meta(meta, event, primary)
 
     DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     path = DRAFTS_DIR / f"draft-{event['event_id']}.md"

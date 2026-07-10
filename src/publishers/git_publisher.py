@@ -135,6 +135,7 @@ def _record_published(state: StateManager, item: PublishItem, pr_url: str | None
         "category": meta.get("category", ""),
         "source_url": primary.get("source_url") or (meta.get("source") or {}).get("url", ""),
         "source_name": primary.get("source_name") or (meta.get("source") or {}).get("title", ""),
+        "source_published_at": primary.get("published_at"),  # дата в источнике (pubDate теперь = выход на 1screen)
         "pr_url": pr_url,
         "pr_merged": False,
         "published_at": utcnow_iso(),
