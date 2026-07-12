@@ -20,7 +20,7 @@ USER_AGENT = "MediaAgents/1.0 (+https://1screen.ru)"
 FETCH_TIMEOUT = 15  # секунд на выкачивание полного текста
 FEED_FETCH_TIMEOUT = 20  # секунд на скачивание самого фида (feedparser сам таймаут не держит)
 MIN_SUMMARY_CHARS = 500  # короче — идём за полным текстом через trafilatura
-MAX_AGE_DAYS = 30  # первичный скрининг: берём только свежее (последний месяц)
+MAX_AGE_DAYS = 30  # значение max_age_days по умолчанию для RU-фидов (в sources.yaml)
 MAX_ENTRIES_PER_FEED = 120  # страховка от фида-архива, отдающего тысячи записей
 
 RAW_ITEMS_PATH = DATA_DIR / "inbox" / "raw_items.jsonl"
@@ -94,12 +94,16 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
     """Собирает включённые фиды в data/inbox/raw_items.jsonl (append-only)."""
     result = CollectResult()
     seen = state.load_seen_urls()
-    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)
 
     for feed_cfg in sources_config.get("rss_feeds", []):
         if not feed_cfg.get("enabled", True):
             continue
         name, url = feed_cfg["name"], feed_cfg["url"]
+        # Фильтр свежести — только для фидов с max_age_days (RU-первоисточники с
+        # архивным хвостом). Мировые фиды короткие, идут без ограничения — их
+        # поведение не трогаем.
+        max_age = feed_cfg.get("max_age_days")
+        cutoff = datetime.now(timezone.utc) - timedelta(days=max_age) if max_age else None
         log.info("фид %s: %s", name, url)
         try:
             parsed = _parse_feed(url)
@@ -117,8 +121,8 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
                 result.skipped += 1
                 continue
 
-            if not _is_recent(entry, cutoff):
-                # первичный скрининг: старше месяца не берём (архивный хвост фида)
+            if cutoff and not _is_recent(entry, cutoff):
+                # первичный скрининг: старше max_age_days не берём (архивный хвост)
                 result.skipped += 1
                 continue
 
@@ -151,7 +155,10 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
             seen.add(link)
             result.added += 1
             added_here += 1
-        log.info("фид %s: +%d свежих (за %d дней)", name, added_here, MAX_AGE_DAYS)
+        if max_age:
+            log.info("фид %s: +%d свежих (за %d дней)", name, added_here, max_age)
+        else:
+            log.info("фид %s: +%d", name, added_here)
 
     state.save_seen_urls(seen)
     log.info("сбор завершён: +%d, пропущено %d, ошибок %d",
