@@ -67,7 +67,8 @@ def stage_write(state: StateManager) -> dict:
     for event in events:
         try:
             draft = write_news(event, state)
-            draft = enrich_draft(draft, state, article_type="news")
+            draft = enrich_draft(draft, state, article_type="news",
+                                 region=event.get("region", "world"))
             primary = next((s for s in event["sources"] if s.get("is_primary")), {})
             qa = run_qa(draft, state,
                         source_content=primary.get("content_ru", ""), article_type="news")

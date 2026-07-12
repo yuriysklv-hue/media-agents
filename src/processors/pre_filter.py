@@ -85,9 +85,12 @@ def run_pre_filter(state: StateManager, since: str | None = None) -> PreFilterRe
         log.info("нет новых raw_items — pre-filter пропущен")
         return result
 
-    keywords_config = load_config("keywords")
+    # Словарь выбирается по языку item: ru-источники приходят на русском,
+    # англоязычный keywords.yaml по ним не сработает (см. keywords_ru.yaml).
+    keywords_by_lang = {"en": load_config("keywords"), "ru": load_config("keywords_ru")}
     survivors = []
     for item in raw_items:
+        keywords_config = keywords_by_lang.get(item.get("language", "en"), keywords_by_lang["en"])
         score = passes_keyword_filter(item["title"], item["summary"], keywords_config)
         if score.score <= 0:
             continue
