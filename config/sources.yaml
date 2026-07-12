@@ -31,20 +31,25 @@ rss_feeds:
 
   # --- Российские источники (Phase 3a). Приходят на русском:
   # Translator их пропускает (language: ru), Enricher ставит adtech-ru/РФ/news-ru. ---
+  # max_age_days: 30 — фильтр свежести только для RU-первоисточников (архивный
+  # хвост фидов). Мировые фиды короткие и работают без ограничения.
   - name: Яндекс Реклама
     url: https://yandex.ru/adv/news/rss
     language: ru
     region: ru
+    max_age_days: 30
     enabled: true
 
   - name: AdRiver
     url: https://www.adriver.ru/news/feed/
     language: ru
     region: ru
+    max_age_days: 30
     enabled: true
 
   - name: АКАР
     url: https://akarussia.ru/feed/
     language: ru
     region: ru
+    max_age_days: 30
     enabled: true
