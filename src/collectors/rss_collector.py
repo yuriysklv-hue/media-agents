@@ -6,7 +6,7 @@ import html
 import re
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import feedparser
 
@@ -18,7 +18,10 @@ log = get_logger("collector.rss")
 
 USER_AGENT = "MediaAgents/1.0 (+https://1screen.ru)"
 FETCH_TIMEOUT = 15  # секунд на выкачивание полного текста
+FEED_FETCH_TIMEOUT = 20  # секунд на скачивание самого фида (feedparser сам таймаут не держит)
 MIN_SUMMARY_CHARS = 500  # короче — идём за полным текстом через trafilatura
+MAX_AGE_DAYS = 30  # первичный скрининг: берём только свежее (последний месяц)
+MAX_ENTRIES_PER_FEED = 120  # страховка от фида-архива, отдающего тысячи записей
 
 RAW_ITEMS_PATH = DATA_DIR / "inbox" / "raw_items.jsonl"
 
@@ -40,13 +43,37 @@ def _clean_html(text: str) -> str:
     return html.unescape(_TAG_RE.sub(" ", text or "")).strip()
 
 
-def _published_iso(entry) -> str:
+def _entry_dt(entry) -> datetime | None:
+    """Дата публикации записи как datetime (UTC); None — даты нет."""
     parsed = entry.get("published_parsed") or entry.get("updated_parsed")
     if parsed:
-        return datetime.fromtimestamp(time.mktime(parsed), tz=timezone.utc).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-    return utcnow_iso()
+        return datetime.fromtimestamp(time.mktime(parsed), tz=timezone.utc)
+    return None
+
+
+def _published_iso(entry) -> str:
+    dt = _entry_dt(entry)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ") if dt else utcnow_iso()
+
+
+def _is_recent(entry, cutoff: datetime) -> bool:
+    """Свежая ли запись (моложе cutoff). Запись без даты считаем свежей."""
+    dt = _entry_dt(entry)
+    return dt is None or dt >= cutoff
+
+
+def _parse_feed(url: str):
+    """Скачивает фид с таймаутом и парсит из байтов.
+
+    feedparser.parse(url) сам таймаут не держит: зависший хост (наблюдали у
+    yandex.ru/adv/news/rss ~38 мин) подвешивает весь этап collect до отмены
+    воркфлоу по timeout-minutes. Качаем через requests с таймаутом, парсим байты.
+    """
+    import requests
+
+    resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=FEED_FETCH_TIMEOUT)
+    resp.raise_for_status()
+    return feedparser.parse(resp.content)
 
 
 def _fetch_full_text(url: str) -> str | None:
@@ -67,6 +94,7 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
     """Собирает включённые фиды в data/inbox/raw_items.jsonl (append-only)."""
     result = CollectResult()
     seen = state.load_seen_urls()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)
 
     for feed_cfg in sources_config.get("rss_feeds", []):
         if not feed_cfg.get("enabled", True):
@@ -74,7 +102,7 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
         name, url = feed_cfg["name"], feed_cfg["url"]
         log.info("фид %s: %s", name, url)
         try:
-            parsed = feedparser.parse(url, agent=USER_AGENT)
+            parsed = _parse_feed(url)
             if parsed.bozo and not parsed.entries:
                 raise RuntimeError(parsed.get("bozo_exception", "пустой ответ"))
         except Exception as exc:
@@ -82,9 +110,15 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
             result.errors.append(f"{name}: {exc}")
             continue
 
-        for entry in parsed.entries:
+        added_here = 0
+        for entry in parsed.entries[:MAX_ENTRIES_PER_FEED]:
             link = entry.get("link", "").strip()
             if not link or link in seen:
+                result.skipped += 1
+                continue
+
+            if not _is_recent(entry, cutoff):
+                # первичный скрининг: старше месяца не берём (архивный хвост фида)
                 result.skipped += 1
                 continue
 
@@ -116,6 +150,8 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
             append_jsonl(RAW_ITEMS_PATH, raw_item)
             seen.add(link)
             result.added += 1
+            added_here += 1
+        log.info("фид %s: +%d свежих (за %d дней)", name, added_here, MAX_AGE_DAYS)
 
     state.save_seen_urls(seen)
     log.info("сбор завершён: +%d, пропущено %d, ошибок %d",
