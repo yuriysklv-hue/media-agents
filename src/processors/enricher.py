@@ -55,7 +55,16 @@ def _existing_slugs(state: StateManager, drafts_dir: Path) -> set[str]:
     return slugs
 
 
-def _llm_enrich(meta: dict, body: str, state: StateManager) -> dict:
+def _region_hint(region: str) -> str:
+    if region == "ru":
+        return ("Регион источника: РОССИЯ. Тема почти всегда касается российского "
+                "рынка — по умолчанию ставь category: adtech-ru и geo: [\"РФ\"]. "
+                "Отступай от этого, только если материал явно про мировой рынок.")
+    return ("Регион источника: МИР. По умолчанию category: adtech-world, "
+            "geo: [\"МИР\"].")
+
+
+def _llm_enrich(meta: dict, body: str, state: StateManager, region: str = "world") -> dict:
     vocab = load_config("vocabulary")
     client, model = pipeline_client("enricher", state)
     prompt = fill_prompt(
@@ -63,6 +72,7 @@ def _llm_enrich(meta: dict, body: str, state: StateManager) -> dict:
         categories_list=", ".join(vocab["categories"]),
         geo_values=", ".join(vocab["geo_values"]),
         tags_list=", ".join(vocab["tags"]),
+        region_hint=_region_hint(region),
         title=meta.get("title", ""),
         body_preview=body[:500],
         current_frontmatter=json.dumps(
@@ -91,15 +101,23 @@ def _validate_tags(tags: list, vocab: dict) -> list[str]:
     return out[:7]
 
 
-def enrich_draft(path: Path, state: StateManager, article_type: str = "news") -> Path:
-    """Дополняет front-matter черновика и переименовывает файл в {slug}.md."""
+def enrich_draft(path: Path, state: StateManager, article_type: str = "news",
+                 region: str = "world") -> Path:
+    """Дополняет front-matter черновика и переименовывает файл в {slug}.md.
+
+    region (из события) делает category/geo/author детерминированными для РФ:
+    ru-источник → adtech-ru / geo ["РФ"] / автор news-ru (по аналогии с миром,
+    где источник world → adtech-world / ["МИР"] / news-world).
+    """
     vocab = load_config("vocabulary")
     authors = load_config("authors")
     meta, body = split_front_matter(path.read_text(encoding="utf-8"))
+    default_category = "adtech-ru" if region == "ru" else "adtech-world"
+    default_geo = ["РФ"] if region == "ru" else ["МИР"]
 
     enriched: dict = {}
     try:
-        enriched = _llm_enrich(meta, body, state) or {}
+        enriched = _llm_enrich(meta, body, state, region=region) or {}
     except (LLMUnavailable, Exception) as exc:  # noqa: BLE001 — фолбэк осознанный
         log.warning("enricher-LLM не отработал (%s) — детерминированный фолбэк", exc)
 
@@ -113,14 +131,19 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news") ->
         description = " ".join(body.split())  # фолбэк: начало тела одной строкой
     meta["description"] = _fit_description(description)
 
-    category = str(enriched.get("category") or meta.get("category") or "adtech-world")
+    category = str(enriched.get("category") or meta.get("category") or default_category)
     if category not in vocab["categories"]:
-        log.warning("категория «%s» вне словаря — заменяю на adtech-world", category)
-        category = "adtech-world"
+        log.warning("категория «%s» вне словаря — заменяю на %s", category, default_category)
+        category = default_category
     meta["category"] = category
 
-    geo = enriched.get("geo") or meta.get("geo") or ["МИР"]
-    meta["geo"] = [g for g in geo if g in vocab["geo_values"]] or ["МИР"]
+    # geo детерминирован по региону источника: ru → РФ (см. ТЗ 4.5). LLM тут не
+    # спрашиваем — регион источника надёжнее семантической догадки.
+    if region == "ru":
+        meta["geo"] = ["РФ"]
+    else:
+        geo = enriched.get("geo") or meta.get("geo") or default_geo
+        meta["geo"] = [g for g in geo if g in vocab["geo_values"]] or default_geo
 
     tags = _validate_tags(enriched.get("tags") or meta.get("tags") or [], vocab)
     if tags:
@@ -130,9 +153,15 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news") ->
     if social_title:
         meta["social_title"] = social_title[:100]
 
-    meta["author"] = authors["category_author_map"].get(
-        category, authors.get("default_author", "news-world")
-    )
+    # Автор — по региону источника (зеркало: world → news-world, ru → news-ru).
+    # Регион приоритетнее маппинга категории: российская market-news тоже должна
+    # выходить от «Службы новостей Россия», а не от «Службы новостей Мир».
+    if region == "ru":
+        meta["author"] = "news-ru"
+    else:
+        meta["author"] = authors["category_author_map"].get(
+            category, authors.get("default_author", "news-world")
+        )
     meta.setdefault("featured", False)
     meta["readingTime"] = _reading_time(body)
     if article_type == "news":
