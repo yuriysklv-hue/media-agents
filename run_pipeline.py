@@ -66,26 +66,34 @@ def stage_write(state: StateManager) -> dict:
     """
     from src.processors.enricher import enrich_draft
     from src.processors.qa import run_qa
-    from src.writers.news_writer import write_news
+    from src.writers.news_writer import revise_news, write_news
 
-    def _write_enrich_qa(event: dict, feedback: str | None = None):
-        draft = write_news(event, state, feedback=feedback)
+    def _enrich_qa(event: dict, draft):
+        """Enrich + QA. Возвращает (draft, полный_текст_черновика, qa).
+
+        Полный текст снимаем ДО run_qa: при FAIL он перемещает файл в failed/,
+        и для последующей хирургической ревизии оригинал был бы уже недоступен.
+        """
         draft = enrich_draft(draft, state, article_type="news",
                              region=event.get("region", "world"))
+        document = draft.read_text(encoding="utf-8")
         primary = next((s for s in event["sources"] if s.get("is_primary")), {})
         qa = run_qa(draft, state,
                     source_content=primary.get("content_ru", ""), article_type="news")
-        return draft, qa
+        return draft, document, qa
 
     events = read_jsonl(DATA_DIR / "inbox" / "curated_items.jsonl")
     passed, failed, recovered = [], 0, 0
     for event in events:
         try:
-            draft, qa = _write_enrich_qa(event)
+            draft, document, qa = _enrich_qa(event, write_news(event, state))
+            # Отказ по стилю/тону/фактам (не rules) → одна хирургическая ревизия:
+            # правим ТОЛЬКО помеченные QA места, не переписывая текст заново.
             if qa.status == "FAIL" and qa.retryable_style:
-                log.info("событие %s: QA завернул по стилю — переписываю по замечаниям: %s",
-                         event.get("event_id"), "; ".join(qa.llm_issues) or "без деталей")
-                draft, qa = _write_enrich_qa(event, feedback="; ".join(qa.llm_issues))
+                issues = "; ".join(qa.llm_issues) or "без деталей"
+                log.info("событие %s: QA завернул по стилю — хирургическая ревизия по замечаниям: %s",
+                         event.get("event_id"), issues)
+                draft, document, qa = _enrich_qa(event, revise_news(event, document, issues, state))
                 if qa.status == "PASS":
                     recovered += 1
             if qa.status == "PASS":
