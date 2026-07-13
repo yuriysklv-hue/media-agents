@@ -18,6 +18,9 @@ log = get_logger("news_writer")
 
 DRAFTS_DIR = DATA_DIR / "drafts" / "news"
 
+# Синхронно с qa.py: QA бракует заголовок вне этого диапазона (задача 6).
+TITLE_MIN, TITLE_MAX = 50, 80
+
 
 def _sources_block(event: dict) -> str:
     sources = event["sources"]
@@ -68,6 +71,21 @@ def _finalize_meta(meta: dict, event: dict, primary: dict) -> dict:
     return meta
 
 
+def _title_len_ok(meta: dict) -> bool:
+    return TITLE_MIN <= len(str(meta.get("title", ""))) <= TITLE_MAX
+
+
+def _retry_hint(title: str) -> str:
+    """Корректирующая приписка к промпту при промахе по длине заголовка."""
+    n = len(title)
+    fix = "слишком короткий — удлини" if n < TITLE_MIN else "слишком длинный — сократи"
+    return (
+        f"\n\nВНИМАНИЕ: предыдущий заголовок был {n} символов ({fix} до диапазона "
+        f"{TITLE_MIN}–{TITLE_MAX}). Заголовок: «{title}». Перепиши материал так, "
+        f"чтобы title был строго {TITLE_MIN}–{TITLE_MAX} символов."
+    )
+
+
 def write_news(event: dict, state: StateManager) -> Path:
     """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher)."""
     client, model = pipeline_client("news_writer", state)
@@ -79,13 +97,29 @@ def write_news(event: dict, state: StateManager) -> Path:
         primary_source_name=primary["source_name"],
         primary_source_url=primary["source_url"],
     )
-    answer = client.chat(
-        model=model, system="", user=prompt,
-        temperature=0.7, max_tokens=4096,
-        stage="news_writer", item_id=event["event_id"],
-    )
 
-    meta, body = split_front_matter(answer)  # ValueError → событие в drafts/failed решает вызывающий
+    def _generate(user_prompt: str) -> tuple[dict, str]:
+        answer = client.chat(
+            model=model, system="", user=user_prompt,
+            temperature=0.7, max_tokens=4096,
+            stage="news_writer", item_id=event["event_id"],
+        )
+        # ValueError → событие в drafts/failed решает вызывающий.
+        return split_front_matter(answer)
+
+    meta, body = _generate(prompt)
+    # Авто-ретрай при промахе по длине заголовка — иначе QA гарантированно
+    # забракует материал (задача 6). Одна попытка: дороже смысла нет.
+    if not _title_len_ok(meta):
+        title = str(meta.get("title", ""))
+        log.info("заголовок %d симв. вне %d–%d — авто-ретрай", len(title), TITLE_MIN, TITLE_MAX)
+        try:
+            retry_meta, retry_body = _generate(prompt + _retry_hint(title))
+            if _title_len_ok(retry_meta):
+                meta, body = retry_meta, retry_body
+        except ValueError as exc:  # ретрай без front-matter — оставляем первый вариант
+            log.warning("ретрай заголовка не распарсился (%s) — беру первый вариант", exc)
+
     body = add_restricted_org_footnotes(body)  # сноска о запрещённых в РФ организациях
     _finalize_meta(meta, event, primary)
 
