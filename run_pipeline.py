@@ -59,10 +59,10 @@ def stage_filter_dedup(state: StateManager) -> dict:
 def stage_write(state: StateManager) -> dict:
     """Author News → Enricher → QA для каждого curated_item.
 
-    При отказе QA по стилю/тону (главная причина брака — «ИИ-голос», задача 4)
-    делаем один проход переписывания: скармливаем писателю конкретные замечания
-    QA и прогоняем write→enrich→qa заново. В failed уходит только то, что не
-    прошло и после переписывания.
+    При отказе QA по стилю/тону/фактам (главная причина брака — «ИИ-голос»,
+    задача 4) делаем одну хирургическую ревизию: модель получает свой прошлый
+    текст + конкретные замечания QA и правит только помеченные места (revise_news),
+    затем enrich→qa заново. В failed уходит только то, что не прошло и после ревизии.
     """
     from src.processors.enricher import enrich_draft
     from src.processors.qa import run_qa
