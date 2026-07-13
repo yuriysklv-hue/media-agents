@@ -71,7 +71,7 @@
 - `news-pipeline.yml` — основной (cron + `workflow_dispatch`), `timeout-minutes: 45`.
 - `digest.yml` — недельный дайджест.
 - `check-keys.yml` — диагностика LLM-ключей (кнопка Run workflow). **Всегда «зелёный» — смысл в тексте лога** (`OK chat` против `--`).
-- ⚠️ Финальный шаг «Commit data state» делает `git pull --rebase origin main`; при запуске **с фиче-ветки** конфликтует (add/add) и красит job красным уже **после** создания PR. На `main` проходит чисто.
+- ⚠️ Финальный шаг «Commit data state» пушит состояние (`data/state/`, `data/published/`) дефолтным `GITHUB_TOKEN`. Раньше падал с **403** (`denied to github-actions[bot]`) и на `main` тоже — токен был read-only, а блока `permissions` в воркфлоу не было → `seen_urls`/`published.jsonl` **никогда** не коммитились между прогонами (задача 1/7). **Исправлено 13.07.2026:** в `news-pipeline.yml` и `digest.yml` добавлен `permissions: contents: write`. Прежний диагноз про «add/add-конфликт `git pull --rebase` с фиче-ветки» был **неверен** (см. `NEXT_SESSION.md`, задача 7). Условие со стороны репо: Settings → Actions → General → Workflow permissions = «Read and write».
 
 ## Контракт с сайтом (репо `media`)
 
