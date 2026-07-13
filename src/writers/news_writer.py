@@ -86,22 +86,17 @@ def _retry_hint(title: str) -> str:
     )
 
 
-def write_news(event: dict, state: StateManager) -> Path:
-    """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher)."""
-    client, model = pipeline_client("news_writer", state)
-    primary = next(s for s in event["sources"] if s.get("is_primary"))
+def _generate_and_save(event: dict, primary: dict, prompt: str,
+                       client, model, temperature: float) -> Path:
+    """Общий хвост: генерация с авто-ретраем длины заголовка, сноска, доводка, файл.
 
-    prompt = fill_prompt(
-        load_prompt("news_writer"),
-        sources_block=_sources_block(event),
-        primary_source_name=primary["source_name"],
-        primary_source_url=primary["source_url"],
-    )
-
+    Используется и первичным написанием (write_news), и хирургической ревизией
+    (revise_news) — различаются только промптом и температурой.
+    """
     def _generate(user_prompt: str) -> tuple[dict, str]:
         answer = client.chat(
             model=model, system="", user=user_prompt,
-            temperature=0.7, max_tokens=4096,
+            temperature=temperature, max_tokens=4096,
             stage="news_writer", item_id=event["event_id"],
         )
         # ValueError → событие в drafts/failed решает вызывающий.
@@ -126,5 +121,38 @@ def write_news(event: dict, state: StateManager) -> Path:
     DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     path = DRAFTS_DIR / f"draft-{event['event_id']}.md"
     path.write_text(render_markdown(meta, body), encoding="utf-8")
-    log.info("черновик написан: %s (%d знаков)", path.name, len(body))
+    log.info("черновик записан: %s (%d знаков)", path.name, len(body))
     return path
+
+
+def write_news(event: dict, state: StateManager) -> Path:
+    """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher)."""
+    client, model = pipeline_client("news_writer", state)
+    primary = next(s for s in event["sources"] if s.get("is_primary"))
+    prompt = fill_prompt(
+        load_prompt("news_writer"),
+        sources_block=_sources_block(event),
+        primary_source_name=primary["source_name"],
+        primary_source_url=primary["source_url"],
+    )
+    return _generate_and_save(event, primary, prompt, client, model, temperature=0.7)
+
+
+def revise_news(event: dict, prev_document: str, issues: str, state: StateManager) -> Path:
+    """Хирургическая ревизия черновика по замечаниям QA (петля «ИИ-голоса», задача 4).
+
+    В отличие от полного переписывания, модель получает СВОЙ прошлый текст и правит
+    ТОЛЬКО помеченные редактурой места, остальное сохраняя дословно. Температура
+    ниже (0.3), чтобы правка была точечной, а не творческим уходом в сторону —
+    иначе получили бы тот же ИИ-голос в новой обёртке. prev_document — полный
+    прошлый материал (front-matter + тело), issues — замечания QA одной строкой.
+    """
+    client, model = pipeline_client("news_writer", state)
+    primary = next(s for s in event["sources"] if s.get("is_primary"))
+    prompt = fill_prompt(
+        load_prompt("reviser"),
+        sources_block=_sources_block(event),
+        prev_document=prev_document,
+        issues=issues,
+    )
+    return _generate_and_save(event, primary, prompt, client, model, temperature=0.3)

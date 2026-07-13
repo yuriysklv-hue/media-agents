@@ -5,6 +5,11 @@ on:
     # 09:00 и 21:00 MSK (UTC+3) = 06:00 и 18:00 UTC
     - cron: '0 6,18 * * *'
   workflow_dispatch:  # Ручной запуск
+    inputs:
+      test_mode:
+        description: 'Тестовый прогон: dry-run (без PR в media и без коммита состояния), обход дедупа, окно свежести 3 дня, топ-15 в написание, черновики артефактом'
+        type: boolean
+        default: false
 
 # Нужно для шага «Commit data state»: дефолтный GITHUB_TOKEN иначе read-only
 # и push состояния (seen_urls/published.jsonl) падает с 403.
@@ -37,11 +42,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           MEDIA_REPO: ${{ secrets.MEDIA_REPO }}
           MEDIA_SITE_SUBDIR: ${{ secrets.MEDIA_SITE_SUBDIR }}
+          # Тест-режим: dry-run + обход дедупа + окно свежести + кап объёма (см. run_pipeline).
+          PIPELINE_TEST_MODE: ${{ inputs.test_mode }}
         run: python run_pipeline.py
+
+      # Черновики теста (прошедшие QA + забракованные с причинами) — в артефакт,
+      # чтобы прочитать сгенерированные тексты. Only тест-режим; even on failure.
+      - name: Upload draft artifacts (test mode)
+        if: ${{ inputs.test_mode }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: drafts-${{ github.run_id }}
+          path: data/drafts/
+          if-no-files-found: warn
 
       # data/state/ и data/published/ коммитятся после каждого прогона —
       # это персистентность дедупликации между запусками на Actions.
+      # В тест-режиме шаг пропускается: состояние не трогаем, и на фиче-ветке
+      # git pull --rebase origin main дал бы add/add-конфликт (красный шаг).
       - name: Commit data state
+        if: ${{ !inputs.test_mode }}
         run: |
           git config user.name "media-agents-bot"
           git config user.email "bot@media-agents"

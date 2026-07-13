@@ -15,7 +15,7 @@ import os
 import sys
 import time
 
-from src.utils.config import DATA_DIR, ensure_data_dirs, load_config
+from src.utils.config import DATA_DIR, ensure_data_dirs, env_flag, load_config
 from src.utils.logger import get_logger
 from src.utils.state import StateManager, read_jsonl
 
@@ -57,21 +57,45 @@ def stage_filter_dedup(state: StateManager) -> dict:
 
 
 def stage_write(state: StateManager) -> dict:
-    """Author News → Enricher → QA для каждого curated_item."""
+    """Author News → Enricher → QA для каждого curated_item.
+
+    При отказе QA по стилю/тону/фактам (главная причина брака — «ИИ-голос»,
+    задача 4) делаем одну хирургическую ревизию: модель получает свой прошлый
+    текст + конкретные замечания QA и правит только помеченные места (revise_news),
+    затем enrich→qa заново. В failed уходит только то, что не прошло и после ревизии.
+    """
     from src.processors.enricher import enrich_draft
     from src.processors.qa import run_qa
-    from src.writers.news_writer import write_news
+    from src.writers.news_writer import revise_news, write_news
+
+    def _enrich_qa(event: dict, draft):
+        """Enrich + QA. Возвращает (draft, полный_текст_черновика, qa).
+
+        Полный текст снимаем ДО run_qa: при FAIL он перемещает файл в failed/,
+        и для последующей хирургической ревизии оригинал был бы уже недоступен.
+        """
+        draft = enrich_draft(draft, state, article_type="news",
+                             region=event.get("region", "world"))
+        document = draft.read_text(encoding="utf-8")
+        primary = next((s for s in event["sources"] if s.get("is_primary")), {})
+        qa = run_qa(draft, state,
+                    source_content=primary.get("content_ru", ""), article_type="news")
+        return draft, document, qa
 
     events = read_jsonl(DATA_DIR / "inbox" / "curated_items.jsonl")
-    passed, failed = [], 0
+    passed, failed, recovered = [], 0, 0
     for event in events:
         try:
-            draft = write_news(event, state)
-            draft = enrich_draft(draft, state, article_type="news",
-                                 region=event.get("region", "world"))
-            primary = next((s for s in event["sources"] if s.get("is_primary")), {})
-            qa = run_qa(draft, state,
-                        source_content=primary.get("content_ru", ""), article_type="news")
+            draft, document, qa = _enrich_qa(event, write_news(event, state))
+            # Отказ по стилю/тону/фактам (не rules) → одна хирургическая ревизия:
+            # правим ТОЛЬКО помеченные QA места, не переписывая текст заново.
+            if qa.status == "FAIL" and qa.retryable_style:
+                issues = "; ".join(qa.llm_issues) or "без деталей"
+                log.info("событие %s: QA завернул по стилю — хирургическая ревизия по замечаниям: %s",
+                         event.get("event_id"), issues)
+                draft, document, qa = _enrich_qa(event, revise_news(event, document, issues, state))
+                if qa.status == "PASS":
+                    recovered += 1
             if qa.status == "PASS":
                 passed.append((draft, event))
             else:
@@ -82,7 +106,7 @@ def stage_write(state: StateManager) -> dict:
     state.set_last_run("write")
     # Список PASS-файлов для publish — сохраняем в памяти процесса через metrics.
     stage_write.passed = passed  # type: ignore[attr-defined]
-    return {"qa_passed": len(passed), "qa_failed": failed}
+    return {"qa_passed": len(passed), "qa_failed": failed, "qa_recovered": recovered}
 
 
 def stage_publish(state: StateManager, metrics: dict) -> dict:
@@ -112,6 +136,11 @@ def main() -> int:
     parser.add_argument("--stage", choices=STAGES, help="запустить только один этап")
     args = parser.parse_args()
 
+    # Тест-режим — всегда dry-run: без PR в media и без коммита состояния.
+    # Обход дедупа и капы объёма включают сами этапы по PIPELINE_TEST_MODE.
+    if env_flag("PIPELINE_TEST_MODE"):
+        os.environ["DRY_RUN"] = "true"
+        log.warning("ТЕСТ-РЕЖИМ включён: dry-run, обход дедупа, окно свежести и кап объёма")
     if args.dry_run:
         os.environ["DRY_RUN"] = "true"
 
