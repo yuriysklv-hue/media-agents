@@ -6,6 +6,11 @@ on:
     - cron: '0 6,18 * * *'
   workflow_dispatch:  # Ручной запуск
 
+# Нужно для шага «Commit data state»: дефолтный GITHUB_TOKEN иначе read-only
+# и push состояния (seen_urls/published.jsonl) падает с 403.
+permissions:
+  contents: write
+
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
