@@ -259,3 +259,110 @@ def test_write_news_keeps_first_when_retry_also_bad(tmp_path, monkeypatch):
     meta, _ = split_front_matter(path.read_text(encoding="utf-8"))
     assert meta["title"] == "Короткий один"           # первый вариант, QA разберётся
     assert len(fake.calls) == 2
+
+
+# --- задача 4: петля переписывания «ИИ-голоса» по замечаниям QA ---
+
+def test_feedback_hint_contains_issues_and_instruction():
+    h = nw._feedback_hint("дежурная концовка; клише «меняет правила»")
+    assert "дежурная концовка" in h
+    assert "ЗАНОВО" in h                               # просим переписать, а не подправить
+
+
+def test_write_news_injects_feedback_into_prompt(tmp_path, monkeypatch):
+    good = _writer_answer("Заголовок нужной длины, укладывается в положенный диапазон")
+    fake = _FakeClient([good])
+    monkeypatch.setattr(nw, "pipeline_client", lambda stage, state: (fake, "m"))
+    monkeypatch.setattr(nw, "DRAFTS_DIR", tmp_path / "news")
+
+    nw.write_news(_writer_event(), state=None, feedback="дежурная концовка")
+    assert "дежурная концовка" in fake.calls[0]["user"]  # замечание ушло писателю
+    assert "ЗАНОВО" in fake.calls[0]["user"]
+
+
+def test_write_news_no_feedback_by_default(tmp_path, monkeypatch):
+    good = _writer_answer("Заголовок нужной длины, укладывается в положенный диапазон")
+    fake = _FakeClient([good])
+    monkeypatch.setattr(nw, "pipeline_client", lambda stage, state: (fake, "m"))
+    monkeypatch.setattr(nw, "DRAFTS_DIR", tmp_path / "news")
+
+    nw.write_news(_writer_event(), state=None)
+    assert "ЗАНОВО" not in fake.calls[0]["user"]        # штатный проход без приписки
+
+
+def test_qaresult_defaults():
+    from src.processors.qa import QAResult
+
+    r = QAResult()
+    assert r.llm_issues == []
+    assert r.retryable_style is False
+
+
+# --- задача 4: оркестрация петли в stage_write ---
+
+def _stage_write_env(monkeypatch, tmp_path, qa_results, calls):
+    """Патчит write/enrich/qa для теста stage_write; возвращает fake StateManager."""
+    import run_pipeline as rp
+    from src.processors import qa as qa_mod  # noqa: F401 — держим модуль импортированным
+
+    events = [{"event_id": "e1", "region": "world",
+               "sources": [{"is_primary": True, "content_ru": "C"}]}]
+    monkeypatch.setattr(rp, "read_jsonl", lambda path: events)
+
+    def fake_write(event, state, feedback=None):
+        calls["write"] += 1
+        calls["feedbacks"].append(feedback)
+        return tmp_path / f"draft-{event['event_id']}.md"
+
+    def fake_enrich(draft, state, article_type="news", region="world"):
+        return draft
+
+    def fake_qa(draft, state, source_content="", article_type="news"):
+        return qa_results.pop(0)
+
+    monkeypatch.setattr("src.writers.news_writer.write_news", fake_write)
+    monkeypatch.setattr("src.processors.enricher.enrich_draft", fake_enrich)
+    monkeypatch.setattr("src.processors.qa.run_qa", fake_qa)
+
+    class _State:
+        def set_last_run(self, *a):
+            pass
+
+    return rp, _State()
+
+
+def _qa(status, retryable=False, issues=None):
+    from src.processors.qa import QAResult
+
+    return QAResult(status=status, retryable_style=retryable, llm_issues=issues or [])
+
+
+def test_stage_write_recovers_after_style_fail(tmp_path, monkeypatch):
+    calls = {"write": 0, "feedbacks": []}
+    results = [_qa("FAIL", retryable=True, issues=["дежурная концовка"]), _qa("PASS")]
+    rp, state = _stage_write_env(monkeypatch, tmp_path, results, calls)
+
+    metrics = rp.stage_write(state)
+    assert metrics == {"qa_passed": 1, "qa_failed": 0, "qa_recovered": 1}
+    assert calls["write"] == 2                          # был один проход переписывания
+    assert calls["feedbacks"] == [None, "дежурная концовка"]  # замечания ушли во вторую попытку
+
+
+def test_stage_write_no_retry_on_rules_fail(tmp_path, monkeypatch):
+    calls = {"write": 0, "feedbacks": []}
+    results = [_qa("FAIL", retryable=False)]            # завернули rules (не стиль) — не переписываем
+    rp, state = _stage_write_env(monkeypatch, tmp_path, results, calls)
+
+    metrics = rp.stage_write(state)
+    assert metrics == {"qa_passed": 0, "qa_failed": 1, "qa_recovered": 0}
+    assert calls["write"] == 1
+
+
+def test_stage_write_counts_failed_when_rewrite_also_fails(tmp_path, monkeypatch):
+    calls = {"write": 0, "feedbacks": []}
+    results = [_qa("FAIL", retryable=True, issues=["x"]), _qa("FAIL", retryable=True, issues=["x"])]
+    rp, state = _stage_write_env(monkeypatch, tmp_path, results, calls)
+
+    metrics = rp.stage_write(state)
+    assert metrics == {"qa_passed": 0, "qa_failed": 1, "qa_recovered": 0}
+    assert calls["write"] == 2                          # одна попытка переписывания, дальше не крутим

@@ -50,6 +50,11 @@ class QAResult:
     status: str = "PASS"  # PASS | FAIL
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    # Конкретные замечания LLM-QA (стиль/факты/тон) — питают петлю переписывания
+    # в stage_write (задача 4). retryable_style=True, когда rules прошли, а завернул
+    # именно стиль/тон/факты → материал имеет смысл переписать по замечаниям.
+    llm_issues: list[str] = field(default_factory=list)
+    retryable_style: bool = False
 
     def fail(self, message: str) -> None:
         self.status = "FAIL"
@@ -152,9 +157,10 @@ def check_style_llm(body: str, source_content: str, state: StateManager) -> QARe
         return result
 
     issues = verdict.get("issues") or []
+    result.llm_issues = [str(i) for i in issues if str(i).strip()]
     for key, label in (("style_ok", "стиль"), ("facts_ok", "факты"), ("tone_ok", "тон")):
         if verdict.get(key) is False:
-            result.fail(f"LLM QA: {label} не прошёл ({'; '.join(map(str, issues)) or 'без деталей'})")
+            result.fail(f"LLM QA: {label} не прошёл ({'; '.join(result.llm_issues) or 'без деталей'})")
     return result
 
 
@@ -169,8 +175,11 @@ def run_qa(path: Path, state: StateManager, source_content: str = "",
         llm = check_style_llm(body, source_content, state)
         result.errors += llm.errors
         result.warnings += llm.warnings
+        result.llm_issues = llm.llm_issues
         if llm.status == "FAIL":
             result.status = "FAIL"
+            # Rules прошли, завернул стиль/тон/факты → материал переписываем по замечаниям.
+            result.retryable_style = True
 
     if result.status == "FAIL":
         failed_dir = path.parent.parent / "failed"

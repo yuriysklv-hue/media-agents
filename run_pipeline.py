@@ -57,21 +57,37 @@ def stage_filter_dedup(state: StateManager) -> dict:
 
 
 def stage_write(state: StateManager) -> dict:
-    """Author News → Enricher → QA для каждого curated_item."""
+    """Author News → Enricher → QA для каждого curated_item.
+
+    При отказе QA по стилю/тону (главная причина брака — «ИИ-голос», задача 4)
+    делаем один проход переписывания: скармливаем писателю конкретные замечания
+    QA и прогоняем write→enrich→qa заново. В failed уходит только то, что не
+    прошло и после переписывания.
+    """
     from src.processors.enricher import enrich_draft
     from src.processors.qa import run_qa
     from src.writers.news_writer import write_news
 
+    def _write_enrich_qa(event: dict, feedback: str | None = None):
+        draft = write_news(event, state, feedback=feedback)
+        draft = enrich_draft(draft, state, article_type="news",
+                             region=event.get("region", "world"))
+        primary = next((s for s in event["sources"] if s.get("is_primary")), {})
+        qa = run_qa(draft, state,
+                    source_content=primary.get("content_ru", ""), article_type="news")
+        return draft, qa
+
     events = read_jsonl(DATA_DIR / "inbox" / "curated_items.jsonl")
-    passed, failed = [], 0
+    passed, failed, recovered = [], 0, 0
     for event in events:
         try:
-            draft = write_news(event, state)
-            draft = enrich_draft(draft, state, article_type="news",
-                                 region=event.get("region", "world"))
-            primary = next((s for s in event["sources"] if s.get("is_primary")), {})
-            qa = run_qa(draft, state,
-                        source_content=primary.get("content_ru", ""), article_type="news")
+            draft, qa = _write_enrich_qa(event)
+            if qa.status == "FAIL" and qa.retryable_style:
+                log.info("событие %s: QA завернул по стилю — переписываю по замечаниям: %s",
+                         event.get("event_id"), "; ".join(qa.llm_issues) or "без деталей")
+                draft, qa = _write_enrich_qa(event, feedback="; ".join(qa.llm_issues))
+                if qa.status == "PASS":
+                    recovered += 1
             if qa.status == "PASS":
                 passed.append((draft, event))
             else:
@@ -82,7 +98,7 @@ def stage_write(state: StateManager) -> dict:
     state.set_last_run("write")
     # Список PASS-файлов для publish — сохраняем в памяти процесса через metrics.
     stage_write.passed = passed  # type: ignore[attr-defined]
-    return {"qa_passed": len(passed), "qa_failed": failed}
+    return {"qa_passed": len(passed), "qa_failed": failed, "qa_recovered": recovered}
 
 
 def stage_publish(state: StateManager, metrics: dict) -> dict:

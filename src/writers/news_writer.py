@@ -86,8 +86,30 @@ def _retry_hint(title: str) -> str:
     )
 
 
-def write_news(event: dict, state: StateManager) -> Path:
-    """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher)."""
+def _feedback_hint(issues: str) -> str:
+    """Приписка к промпту при переписывании материала по замечаниям QA (задача 4).
+
+    Первая версия завернута редактурой за «ИИ-голос» — скармливаем конкретные
+    замечания и просим переписать заново, сохранив факты. Даём свободу структуры,
+    чтобы не воспроизвести тот же шаблон.
+    """
+    return (
+        "\n\nВНИМАНИЕ: предыдущая версия этого материала отклонена редактурой за "
+        "качество текста. Замечания редактора:\n"
+        f"{issues}\n"
+        "Перепиши материал ЗАНОВО, устранив каждое замечание: живее, с авторской "
+        "интонацией, конкретно, без гладких общих мест и ИИ-шаблонов. Меняй структуру "
+        "и заходы — не повторяй прежний каркас. Факты, цифры и ссылки сохрани точными, "
+        "заголовок держи в 50–80 символах."
+    )
+
+
+def write_news(event: dict, state: StateManager, feedback: str | None = None) -> Path:
+    """Пишет черновик data/drafts/news/draft-{event_id}.md (slug проставит Enricher).
+
+    feedback — замечания QA с прошлого прохода: при повторной генерации материал
+    переписывается с их учётом (петля восстановления «ИИ-голоса», задача 4).
+    """
     client, model = pipeline_client("news_writer", state)
     primary = next(s for s in event["sources"] if s.get("is_primary"))
 
@@ -97,6 +119,8 @@ def write_news(event: dict, state: StateManager) -> Path:
         primary_source_name=primary["source_name"],
         primary_source_url=primary["source_url"],
     )
+    if feedback:
+        prompt += _feedback_hint(feedback)
 
     def _generate(user_prompt: str) -> tuple[dict, str]:
         answer = client.chat(
