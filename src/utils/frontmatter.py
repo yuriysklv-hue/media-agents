@@ -8,6 +8,12 @@ import yaml
 _FM_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 _FENCE_RE = re.compile(r"\A```[a-zA-Z]*\s*\n(.*?)\n```\s*\Z", re.DOTALL)
 
+# Скалярные строковые поля, значение которых модель иногда пишет без кавычек.
+# Двоеточие в таком значении (напр. `title: Реклама в Европу: детали`) ломает
+# YAML («mapping values are not allowed here») и терял весь материал (задача 5).
+_QUOTABLE_FIELDS = {"title", "description", "social_title", "pubDate"}
+_KEY_LINE_RE = re.compile(r"^(\s*)([A-Za-z_][\w-]*):[ \t]*(\S.*)$")
+
 
 def strip_code_fence(text: str) -> str:
     """LLM любит заворачивать ответ в ```markdown ... ``` — снимаем."""
@@ -16,13 +22,48 @@ def strip_code_fence(text: str) -> str:
     return m.group(1).strip() if m else text
 
 
+def _quote_scalar(value: str) -> str:
+    """Оборачивает значение в двойные кавычки, экранируя внутренние кавычки/слэши."""
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1]  # снимаем уже имеющиеся кавычки, чтобы не задваивать
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _repair_front_matter(raw: str) -> str:
+    """Чинит невалидный YAML: квотит «сырые» значения строковых полей.
+
+    Срабатывает только когда обычный разбор упал: у строкового поля значение
+    без кавычек с двоеточием внутри. Такие значения оборачиваем в кавычки,
+    остальные строки не трогаем.
+    """
+    fixed = []
+    for line in raw.split("\n"):
+        m = _KEY_LINE_RE.match(line)
+        if m and m.group(2) in _QUOTABLE_FIELDS:
+            indent, key, value = m.groups()
+            value = value.strip()
+            already_quoted = len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'"
+            if not already_quoted:
+                fixed.append(f"{indent}{key}: {_quote_scalar(value)}")
+                continue
+        fixed.append(line)
+    return "\n".join(fixed)
+
+
 def split_front_matter(text: str) -> tuple[dict, str]:
     """Возвращает (front-matter dict, body). ValueError, если front-matter нет."""
     text = strip_code_fence(text)
     m = _FM_RE.match(text)
     if not m:
         raise ValueError("front-matter не найден (нет блока --- ... ---)")
-    meta = yaml.safe_load(m.group(1)) or {}
+    try:
+        meta = yaml.safe_load(m.group(1)) or {}
+    except yaml.YAMLError:
+        # Частая причина — двоеточие в незакавыченном заголовке/описании.
+        # Пробуем починить квотированием строковых полей и разобрать ещё раз.
+        meta = yaml.safe_load(_repair_front_matter(m.group(1))) or {}
     if not isinstance(meta, dict):
         raise ValueError("front-matter не является YAML-объектом")
     body = text[m.end():].strip()
