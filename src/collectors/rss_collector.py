@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 import feedparser
 
-from ..utils.config import DATA_DIR
+from ..utils.config import DATA_DIR, env_flag
 from ..utils.logger import get_logger
 from ..utils.state import StateManager, append_jsonl, utcnow_iso
 
@@ -91,9 +92,21 @@ def _fetch_full_text(url: str) -> str | None:
 
 
 def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
-    """Собирает включённые фиды в data/inbox/raw_items.jsonl (append-only)."""
+    """Собирает включённые фиды в data/inbox/raw_items.jsonl (append-only).
+
+    Тест-режим (PIPELINE_TEST_MODE): (1) память дедупа игнорируется, чтобы набрать
+    материал для теста; но чтобы не утащить весь архив фидов, (2) ко ВСЕМ фидам
+    принудительно применяется окно свежести TEST_MAX_AGE_DAYS (по умолчанию 3 дня),
+    и (3) seen_urls НЕ сохраняется — боевая память дедупа в main не трогается.
+    """
     result = CollectResult()
-    seen = state.load_seen_urls()
+    test_mode = env_flag("PIPELINE_TEST_MODE")
+    test_max_age = int(os.environ.get("TEST_MAX_AGE_DAYS", "3"))
+    # В тест-режиме память игнорируем (иначе ветка наследует seen из main и собирает 0).
+    seen = set() if test_mode else state.load_seen_urls()
+    if test_mode:
+        log.warning("ТЕСТ-РЕЖИМ: дедуп-память игнорируется, окно свежести %d дн. на все фиды, "
+                    "seen_urls НЕ сохраняется", test_max_age)
 
     for feed_cfg in sources_config.get("rss_feeds", []):
         if not feed_cfg.get("enabled", True):
@@ -101,8 +114,9 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
         name, url = feed_cfg["name"], feed_cfg["url"]
         # Фильтр свежести — только для фидов с max_age_days (RU-первоисточники с
         # архивным хвостом). Мировые фиды короткие, идут без ограничения — их
-        # поведение не трогаем.
-        max_age = feed_cfg.get("max_age_days")
+        # поведение не трогаем. В тест-режиме окно принудительно на ВСЕ фиды
+        # (защита от архивного хвоста при выключенной памяти).
+        max_age = test_max_age if test_mode else feed_cfg.get("max_age_days")
         cutoff = datetime.now(timezone.utc) - timedelta(days=max_age) if max_age else None
         log.info("фид %s: %s", name, url)
         try:
@@ -160,7 +174,8 @@ def collect_rss(sources_config: dict, state: StateManager) -> CollectResult:
         else:
             log.info("фид %s: +%d", name, added_here)
 
-    state.save_seen_urls(seen)
+    if not test_mode:  # тест-режим боевую память дедупа не трогает
+        state.save_seen_urls(seen)
     log.info("сбор завершён: +%d, пропущено %d, ошибок %d",
              result.added, result.skipped, len(result.errors))
     return result

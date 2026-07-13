@@ -15,7 +15,7 @@ import os
 import sys
 import time
 
-from src.utils.config import DATA_DIR, ensure_data_dirs, load_config
+from src.utils.config import DATA_DIR, ensure_data_dirs, env_flag, load_config
 from src.utils.logger import get_logger
 from src.utils.state import StateManager, read_jsonl
 
@@ -136,6 +136,11 @@ def main() -> int:
     parser.add_argument("--stage", choices=STAGES, help="запустить только один этап")
     args = parser.parse_args()
 
+    # Тест-режим — всегда dry-run: без PR в media и без коммита состояния.
+    # Обход дедупа и капы объёма включают сами этапы по PIPELINE_TEST_MODE.
+    if env_flag("PIPELINE_TEST_MODE"):
+        os.environ["DRY_RUN"] = "true"
+        log.warning("ТЕСТ-РЕЖИМ включён: dry-run, обход дедупа, окно свежести и кап объёма")
     if args.dry_run:
         os.environ["DRY_RUN"] = "true"
 

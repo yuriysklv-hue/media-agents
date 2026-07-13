@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 
 from ..llm_client import LLMUnavailable, parse_json_response, pipeline_client
-from ..utils.config import DATA_DIR, fill_prompt, load_config, load_prompt
+from ..utils.config import DATA_DIR, env_flag, fill_prompt, load_config, load_prompt
 from ..utils.logger import get_logger
 from ..utils.scoring import passes_keyword_filter
 from ..utils.state import StateManager, read_jsonl, utcnow_iso, write_jsonl
@@ -22,6 +23,12 @@ PASSED_PATH = DATA_DIR / "inbox" / "passed_pre_filter.jsonl"
 
 BATCH_SIZE = 50
 LLM_SCORE_THRESHOLD = 5
+
+
+def _relevance(item: dict) -> tuple[float, float]:
+    """Ключ ранжирования: LLM-скор приоритетнее, иначе keyword-скор."""
+    llm = item.get("llm_score")
+    return (float(llm) if llm is not None else -1.0, float(item.get("keyword_score", 0)))
 
 
 @dataclass
@@ -101,6 +108,18 @@ def run_pre_filter(state: StateManager, since: str | None = None) -> PreFilterRe
     result.passed_keywords = len(survivors)
     log.info("keyword scoring: %d из %d прошли порог", len(survivors), result.total)
 
+    # Тест-режим: жёсткий кап на объём, уходящий в дорогие этапы (GLM-скоринг →
+    # перевод → написание). Память дедупа в тесте выключена, поэтому без капа
+    # объём мог бы раздуться. Кандидатов до GLM берём с запасом (×3), финальный
+    # топ-N режем после GLM-оценки (см. ниже). Боевой прогон это не касается.
+    test_mode = env_flag("PIPELINE_TEST_MODE")
+    test_cap = int(os.environ.get("TEST_MAX_ITEMS", "15"))
+    if test_mode and len(survivors) > test_cap * 3:
+        survivors.sort(key=lambda it: it.get("keyword_score", 0), reverse=True)
+        survivors = survivors[: test_cap * 3]
+        log.warning("ТЕСТ-РЕЖИМ: кандидатов урезано до %d (топ по keyword-скору) перед GLM",
+                    len(survivors))
+
     llm_scores = _llm_scores(survivors, state)
     result.llm_skipped = not llm_scores and bool(survivors)
 
@@ -117,6 +136,14 @@ def run_pre_filter(state: StateManager, since: str | None = None) -> PreFilterRe
         item["pre_filter_passed"] = True
         item["pre_filter_at"] = utcnow_iso()
         passed.append(item)
+
+    # Тест-режим: финальный твёрдый потолок на то, что уйдёт в перевод и написание —
+    # берём топ-N самых релевантных. Это гарантия по стоимости и по 45-мин лимиту
+    # независимо от того, сколько собралось.
+    if test_mode and len(passed) > test_cap:
+        passed.sort(key=_relevance, reverse=True)
+        passed = passed[:test_cap]
+        log.warning("ТЕСТ-РЕЖИМ: в перевод/написание уходит топ-%d самых релевантных", test_cap)
 
     write_jsonl(PASSED_PATH, passed)
     result.passed = len(passed)
