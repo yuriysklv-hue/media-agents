@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.processors.qa import check_rules
+from src.processors.qa import check_quote_markup, check_rules
 
 VALID_META = {
     "title": "Google запускает новую функцию DSP для рекламодателей США",  # 55 симв.
@@ -73,3 +73,33 @@ def test_tag_outside_vocabulary_is_warning_not_fail():
     r = _check({"tags": ["programmatic", "DSP", "неведомый-тег"]})
     assert r.status == "PASS"
     assert any("неведомый-тег" in w for w in r.warnings)
+
+
+# --- Разметка цитат <q cite> (задача 7-E, формат B) ---
+
+def test_wellformed_quote_markup_no_warning():
+    body = 'Текст. «<q cite="https://ex.com">так и есть</q>», — сказал X. ' * 5
+    assert check_quote_markup(body) == []
+
+
+def test_unbalanced_quote_tags_warns():
+    body = '«<q cite="https://ex.com">без закрытия'
+    assert any("не сбалансиров" in w for w in check_quote_markup(body))
+
+
+def test_quote_without_cite_warns():
+    body = "«<q>нет источника</q>», — заметил Y."
+    assert any("без cite" in w for w in check_quote_markup(body))
+
+
+def test_split_quote_two_fragments_ok():
+    body = ('«<q cite="https://ex.com">Я проповедую обращённым,</q> — признала она. '
+            '— <q cite="https://ex.com">если не внедрят, ничего не изменится</q>».')
+    assert check_quote_markup(body) == []
+
+
+def test_malformed_quote_markup_is_warning_not_fail():
+    """Кривой <q> не роняет материал — только warning (сборку Astro не ломает)."""
+    r = _check(body=VALID_BODY + ' «<q>без источника и закрытия')
+    assert r.status == "PASS"
+    assert any("разметка цитат" in w for w in r.warnings)
