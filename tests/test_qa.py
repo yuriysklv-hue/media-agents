@@ -37,6 +37,30 @@ def test_short_title_fails():
     assert _check({"title": "Коротко"}).status == "FAIL"
 
 
+def test_additional_sources_valid_passes():
+    extras = [{"title": "Digiday", "url": "https://digiday.com/x"}]
+    assert _check({"additional_sources": extras}).status == "PASS"
+
+
+def test_additional_sources_bad_url_fails():
+    extras = [{"title": "Digiday", "url": "not-a-url"}]
+    assert _check({"additional_sources": extras}).status == "FAIL"
+
+
+def test_additional_sources_missing_title_fails():
+    extras = [{"url": "https://digiday.com/x"}]
+    assert _check({"additional_sources": extras}).status == "FAIL"
+
+
+def test_additional_sources_duplicating_primary_fails():
+    extras = [{"title": "AdExchanger", "url": "https://www.adexchanger.com/x"}]  # = primary
+    assert _check({"additional_sources": extras}).status == "FAIL"
+
+
+def test_additional_sources_empty_list_fails():
+    assert _check({"additional_sources": []}).status == "FAIL"
+
+
 def test_ai_cliche_detected():
     """«почему это важно» в тексте → FAIL."""
     r = _check(body=VALID_BODY + " Почему это важно: рынок растёт.")

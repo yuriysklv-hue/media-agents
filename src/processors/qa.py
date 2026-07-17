@@ -144,10 +144,27 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str,
         result.warnings.append(f"тело {len(body)} символов — длиннее ориентира {body_max}")
 
     source = meta.get("source")
+    primary_url = ""
     if article_type == "news":
-        url = (source or {}).get("url", "") if isinstance(source, dict) else ""
-        if not str(url).startswith(("http://", "https://")):
+        primary_url = (source or {}).get("url", "") if isinstance(source, dict) else ""
+        if not str(primary_url).startswith(("http://", "https://")):
             result.fail("source.url отсутствует или не http(s)")
+
+    # additional_sources опционально; но если есть — структура строгая (иначе
+    # строгая схема Astro уронит сборку сайта). Пустой список = поля нет.
+    extras = meta.get("additional_sources")
+    if extras is not None:
+        if not isinstance(extras, list) or not extras:
+            result.fail("additional_sources — не непустой список")
+        else:
+            for i, s in enumerate(extras):
+                url = s.get("url", "") if isinstance(s, dict) else ""
+                if not isinstance(s, dict) or not s.get("title"):
+                    result.fail(f"additional_sources[{i}] без title/не объект")
+                elif not str(url).startswith(("http://", "https://")):
+                    result.fail(f"additional_sources[{i}].url не http(s)")
+                elif url == primary_url:
+                    result.fail(f"additional_sources[{i}] дублирует primary source")
 
     if slug in existing_slugs:
         result.fail(f"slug «{slug}» уже занят")
@@ -209,6 +226,20 @@ def run_qa(path: Path, state: StateManager, source_content: str = "",
             result.retryable_style = True
 
     if result.status == "FAIL":
+        # Персист брака: запись с причиной уходит в failed_drafts.jsonl (коммитится
+        # воркфлоу) — размеченный корпус «не прошло + почему» для тюнинга промптов.
+        # ArticleStore несёт add_failed_draft; голый StateManager — нет (тесты),
+        # поэтому мягко через getattr.
+        add_failed = getattr(state, "add_failed_draft", None)
+        if add_failed is not None:
+            add_failed({
+                "slug": path.stem,
+                "type": article_type,
+                "title": meta.get("title", ""),
+                "reasons": result.errors,
+                "llm_issues": result.llm_issues,
+                "body": body,
+            })
         failed_dir = path.parent.parent / "failed"
         failed_dir.mkdir(parents=True, exist_ok=True)
         target = failed_dir / path.name

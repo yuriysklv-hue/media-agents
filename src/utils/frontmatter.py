@@ -75,6 +75,7 @@ FIELD_ORDER = [
     "title",
     "description",
     "pubDate",
+    "updatedDate",  # опционально: момент обновления материала (update-flow, Фаза 2)
     "author",
     "category",
     "geo",
@@ -86,6 +87,7 @@ FIELD_ORDER = [
     "sources_count",
     "week",
     "source",
+    "additional_sources",  # опционально: доп. источники многоисточникового события
 ]
 
 
