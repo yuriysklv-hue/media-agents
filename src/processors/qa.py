@@ -45,6 +45,31 @@ TAGS_MIN, TAGS_MAX = 3, 7
 BODY_LIMITS = {"news": (500, 6000), "digest": (2000, 20000)}
 
 
+_Q_OPEN_RE = re.compile(r"<q(\s[^>]*)?>", re.IGNORECASE)
+
+
+def check_quote_markup(body: str) -> list[str]:
+    """Валидность разметки прямой речи `<q cite="…">` (задача 7-E, формат B).
+
+    Не FAIL: кривой `<q>` не ломает сборку Astro (сырой HTML в `.md` рендерится
+    как есть), поэтому возвращаем только warnings — чтобы битую разметку было
+    видно в логе, но материал из-за неё не терялся.
+    """
+    warnings: list[str] = []
+    opens = _Q_OPEN_RE.findall(body)
+    closes = body.count("</q>")
+    if len(opens) != closes:
+        warnings.append(
+            f"разметка цитат: {len(opens)} <q> и {closes} </q> — теги не сбалансированы"
+        )
+    without_cite = sum(1 for attrs in opens if "cite=" not in (attrs or "").lower())
+    if without_cite:
+        warnings.append(
+            f"разметка цитат: {without_cite} <q> без cite= (нужен URL первоисточника)"
+        )
+    return warnings
+
+
 @dataclass
 class QAResult:
     status: str = "PASS"  # PASS | FAIL
@@ -109,6 +134,8 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str,
     for tag in tags:
         if str(tag).lower() not in known and not str(tag).endswith("[new]"):
             result.warnings.append(f"тег «{tag}» вне словаря и без пометки [new]")
+
+    result.warnings.extend(check_quote_markup(body))
 
     body_min, body_max = BODY_LIMITS.get(article_type, (BODY_MIN_CHARS, 10**6))
     if len(body) < body_min:
