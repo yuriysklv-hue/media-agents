@@ -18,6 +18,7 @@ import time
 from src.utils.config import DATA_DIR, ensure_data_dirs, env_flag, load_config
 from src.utils.logger import get_logger
 from src.utils.state import StateManager, read_jsonl
+from src.utils.store import ArticleStore
 
 log = get_logger("pipeline")
 
@@ -145,7 +146,9 @@ def main() -> int:
         os.environ["DRY_RUN"] = "true"
 
     ensure_data_dirs()
-    state = StateManager()
+    # ArticleStore — фасад над StateManager (delegate). Новая персистентность
+    # (failed_drafts) идёт через него; старые state.*-вызовы работают как раньше.
+    state = ArticleStore()
     started = time.monotonic()
     from src.utils.state import utcnow_iso
 

@@ -1,20 +1,26 @@
 """Filter + Dedup: повторная фильтрация на русском, семантическая дедупликация,
 кластеризация похожих items в события.
 
-- Порог 0.85 cosine similarity — дубликат уже опубликованного;
-- порог 0.75 — кластеризация новых items в одно событие.
-При недоступности embedding API дедупликация пропускается (URL-дедуп уже был).
+Два пути дедупа:
+- СЕМАНТИЧЕСКИЙ (эмбеддинги) — пороги 0.85 (дубль опубликованного) / 0.75
+  (кластеризация). Отключён на z.ai (эмбеддинги отдают 400) — ветка ДРЕМЛЕТ,
+  оживает сама, как только вернётся провайдер эмбеддингов.
+- TF-IDF (`tfidf_engine`, символьные n-граммы) — активный фолбэк, когда
+  эмбеддингов нет. Заменил прежний текстовый фолбэк по заголовкам: плотнее
+  (IDF-взвешенные граммы вместо Jaccard+SequenceMatcher), ловит перефразировки
+  одного сюжета из разных фидов, устойчив к русской словоизменительности.
 """
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 
 from ..llm_client import LLMUnavailable, parse_json_response, pipeline_client
 from ..utils.config import DATA_DIR, fill_prompt, load_prompt
 from ..utils.logger import get_logger
 from ..utils.state import StateManager, read_jsonl, utcnow_iso, write_jsonl
-from ..utils.text_similarity import title_similarity
+from ..utils.tfidf_engine import cross_similarity, pairwise_similarity
 
 log = get_logger("filter_dedup")
 
@@ -25,10 +31,23 @@ RELEVANCE_THRESHOLD = 5
 DUP_SIMILARITY = 0.85
 CLUSTER_SIMILARITY = 0.75
 
-# Пороги текстового фолбэка (заголовки грубее эмбеддингов — берём консервативно,
-# чтобы не склеить разные сюжеты про один бренд).
-DUP_TITLE_SIMILARITY = 0.78      # дубль уже опубликованного
-CLUSTER_TITLE_SIMILARITY = 0.62  # одна новость из разных фидов → одно событие
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ[name])
+    except (KeyError, ValueError):
+        return default
+
+
+# Пороги TF-IDF (косинус по символьным n-граммам). Значения ЭМПИРИЧЕСКИЕ —
+# подобраны консервативно и докручиваются по боевому прогону через env, без
+# редеплоя (DEDUP_DUP_THRESHOLD / DEDUP_CLUSTER_THRESHOLD).
+# - дубль опубликованного считаем по заголовкам (стабильный сигнал против
+#   большого корпуса) — планка выше, чтобы не выбросить свежий поворот темы;
+# - кластеризацию свежих — по заголовок+summary (богаче сигнал внутри батча) —
+#   планка ниже, чтобы собрать одну новость из разных фидов.
+DUP_TITLE_TFIDF = _env_float("DEDUP_DUP_THRESHOLD", 0.62)
+CLUSTER_TFIDF = _env_float("DEDUP_CLUSTER_THRESHOLD", 0.45)
 
 
 @dataclass
@@ -172,35 +191,54 @@ def _title_of(item: dict) -> str:
     return item.get("title_ru") or item.get("title") or ""
 
 
-def _text_fallback_events(items: list[dict], state: StateManager, result: DedupResult) -> list[dict]:
-    """Дедуп/кластеризация по заголовкам, когда эмбеддинги недоступны.
+def _cluster_text(item: dict) -> str:
+    """Текст item для TF-IDF-кластеризации: заголовок + summary (богаче сигнал)."""
+    return f"{_title_of(item)} {item.get('summary_ru') or ''}"
 
-    1) Отсеиваем свежие items, чей заголовок близок к уже опубликованному.
-    2) Оставшиеся жадно кластеризуем между собой — одна новость из разных фидов
-       собирается в одно событие (writer сошлётся на оба источника).
+
+def _tfidf_events(items: list[dict], state: StateManager, result: DedupResult) -> list[dict]:
+    """Дедуп/кластеризация через TF-IDF, когда эмбеддинги недоступны.
+
+    1) Отсеиваем свежие items, чей ЗАГОЛОВОК близок к уже опубликованному
+       (cross-similarity против корпуса published-заголовков).
+    2) Оставшиеся жадно кластеризуем между собой по TF-IDF заголовок+summary —
+       одна новость из разных фидов собирается в одно событие (writer сошлётся
+       на все источники через additional_sources).
     """
     pub_titles = [str(r.get("title", "")) for r in state.load_published() if r.get("title")]
 
     fresh: list[dict] = []
-    for item in items:
-        title = _title_of(item)
-        if any(title_similarity(title, pt) >= DUP_TITLE_SIMILARITY for pt in pub_titles):
-            log.info("дубль опубликованного (по заголовку): %s", title[:70])
-            result.duplicates += 1
-            continue
-        fresh.append(item)
+    if pub_titles:
+        dup_sim = cross_similarity([_title_of(it) for it in items], pub_titles)
+        for i, item in enumerate(items):
+            if dup_sim.shape[1] and float(dup_sim[i].max()) >= DUP_TITLE_TFIDF:
+                log.info("дубль опубликованного (TF-IDF %.2f): %s",
+                         float(dup_sim[i].max()), _title_of(item)[:70])
+                result.duplicates += 1
+                continue
+            fresh.append(item)
+    else:
+        fresh = list(items)
 
+    # Жадная кластеризация свежих: якорь кластера — первый item, к нему цепляем
+    # остальные, чья близость к якорю >= порога (симметрично прежней логике).
     clusters: list[list[dict]] = []
-    for item in fresh:
-        title = _title_of(item)
-        for cluster in clusters:
-            if title_similarity(title, _title_of(cluster[0])) >= CLUSTER_TITLE_SIMILARITY:
-                cluster.append(item)
-                log.info("склеено в событие: «%s» ↔ «%s»",
-                         _title_of(cluster[0])[:50], title[:50])
-                break
-        else:
-            clusters.append([item])
+    if fresh:
+        sim = pairwise_similarity([_cluster_text(it) for it in fresh])
+        assigned: set[int] = set()
+        for i in range(len(fresh)):
+            if i in assigned:
+                continue
+            cluster = [fresh[i]]
+            assigned.add(i)
+            for j in range(i + 1, len(fresh)):
+                if j not in assigned and float(sim[i][j]) >= CLUSTER_TFIDF:
+                    cluster.append(fresh[j])
+                    assigned.add(j)
+                    log.info("склеено в событие (TF-IDF %.2f): «%s» ↔ «%s»",
+                             float(sim[i][j]), _title_of(fresh[i])[:50],
+                             _title_of(fresh[j])[:50])
+            clusters.append(cluster)
 
     return [_make_event(cluster, state) for cluster in clusters]
 
@@ -224,9 +262,9 @@ def run_filter_dedup(state: StateManager) -> DedupResult:
 
     matrix = _embed_items(items, state)
     if matrix is None:
-        log.warning("embeddings недоступны — текстовый фолбэк-дедуп по заголовкам")
+        log.warning("embeddings недоступны — TF-IDF дедуп (символьные n-граммы)")
         result.embeddings_skipped = True
-        events = _text_fallback_events(items, state, result)
+        events = _tfidf_events(items, state, result)
         write_jsonl(CURATED_PATH, events)
         result.events = len(events)
         return result

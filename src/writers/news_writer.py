@@ -63,6 +63,19 @@ def _finalize_meta(meta: dict, event: dict, primary: dict) -> dict:
     front-matter она не идёт, чтобы не расширять контракт схемы сайта.
     """
     meta["source"] = {"title": primary["source_name"], "url": primary["source_url"]}
+    # Многоисточниковое событие: доп. источники — во front-matter ДЕТЕРМИНИРОВАННО
+    # (из сырья, не из фантазии модели). Без этого читатель видит в тексте факты
+    # сверх единственной указанной ссылки и воспринимает это как галлюцинацию.
+    # Один источник → поля нет (сайт рендерит только primary, как раньше).
+    extras = [
+        {"title": s["source_name"], "url": s["source_url"]}
+        for s in event.get("sources", [])
+        if not s.get("is_primary") and s.get("source_url")
+    ]
+    if extras:
+        meta["additional_sources"] = extras
+    else:
+        meta.pop("additional_sources", None)
     meta["pubDate"] = utcnow_iso()
     # Сид категории/geo по региону источника; Enricher уточнит и проставит автора.
     region = event.get("region", "world")

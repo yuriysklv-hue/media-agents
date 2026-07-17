@@ -50,6 +50,29 @@ def test_finalize_sets_source_and_defaults():
     assert meta["geo"] == ["МИР"]
 
 
+# --- additional_sources для многоисточникового события ---
+
+def test_finalize_single_source_no_additional():
+    event, primary = _event()
+    meta = {"title": "x"}
+    _finalize_meta(meta, event, primary)
+    assert "additional_sources" not in meta
+
+
+def test_finalize_multi_source_emits_additional():
+    primary = {"source_name": "AdExchanger", "source_url": "https://adexchanger.com/x",
+               "published_at": "2026-07-06T10:30:00Z", "is_primary": True}
+    extra = {"source_name": "Digiday", "source_url": "https://digiday.com/y",
+             "is_primary": False}
+    event = {"event_id": "abc", "published_at": "2026-07-06T10:30:00Z",
+             "sources": [primary, extra]}
+    meta = {"title": "x"}
+    _finalize_meta(meta, event, primary)
+    assert meta["additional_sources"] == [{"title": "Digiday", "url": "https://digiday.com/y"}]
+    # primary в доп. источники не попадает
+    assert all(s["url"] != "https://adexchanger.com/x" for s in meta["additional_sources"])
+
+
 # --- сноска о запрещённых организациях ---
 
 def test_meta_footnote_added_once():

@@ -136,6 +136,10 @@ def _record_published(state: StateManager, item: PublishItem, pr_url: str | None
         "source_url": primary.get("source_url") or (meta.get("source") or {}).get("url", ""),
         "source_name": primary.get("source_name") or (meta.get("source") or {}).get("title", ""),
         "source_published_at": primary.get("published_at"),  # дата в источнике (pubDate теперь = выход на 1screen)
+        # Многоисточниковое событие: доп. источники и их число — в реестр (задел
+        # под сверку и под update-flow Фазы 2). Старые записи без полей валидны.
+        "additional_sources": meta.get("additional_sources") or [],
+        "source_count": event.get("source_count") or len(event.get("sources", [])) or 1,
         "pr_url": pr_url,
         "pr_merged": False,
         "published_at": utcnow_iso(),

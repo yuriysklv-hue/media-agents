@@ -3,6 +3,7 @@ requests>=2.31
 trafilatura>=1.12          # Извлечение полного текста статьи из URL
 openai>=1.40               # DeepSeek и GLM — оба OpenAI-compatible
 numpy>=1.26                # Cosine similarity для дедупликации
+scikit-learn>=1.4          # TF-IDF дедуп (эмбеддинги z.ai не отдаёт) — char n-граммы
 pyyaml>=6.0
 python-dotenv>=1.0
 gitpython>=3.1             # Git-операции для publisher
