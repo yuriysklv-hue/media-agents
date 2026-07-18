@@ -1,0 +1,141 @@
+# Азиатский словарь Pre-Filter (уровень 1: keyword scoring).
+# Применяется к items с region: asia (см. pre_filter.py — выбор по РЕГИОНУ, т.к.
+# язык у азиатских источников en, как у мира; по языку словарь бы не выбрался).
+#
+# Схема, веса, механики exclusion/override — те же, что в keywords.yaml
+# (см. src/utils/scoring.py). Отличается набор слов и порог.
+#
+# Рынок Азии закрытый: чисто рекламных новостей мало. Alizila (ньюсрум Alibaba)
+# пишет шире — о любых фичах монетизации/коммерции. Поэтому словарь с фокусом на
+# commerce/monetization, а не только adtech, и порог НИЖЕ мирового (15 против 20):
+# 1 источник на всю Азию — даём запас для статьи с одним платформенным попаданием.
+
+core_adtech:
+  weight_in_title: 30
+  weight_in_desc: 20
+  keywords:
+    - programmatic
+    - DSP
+    - SSP
+    - RTB
+    - ad exchange
+    - retail media
+    - commerce media
+    - live commerce
+    - livestream shopping
+    - livestreaming
+    - CTV
+    - OTT
+    - AI advertising
+    - attribution
+    - measurement
+    - monetization
+    - monetisation
+    - ad revenue
+    - take rate
+    - search ads
+    - sponsored listings
+
+platforms:
+  weight_in_title: 20
+  weight_in_desc: 10
+  keywords:
+    - Alibaba
+    - Alimama
+    - Taobao
+    - Tmall
+    - AliExpress
+    - Lazada
+    - Cainiao
+    - Ele.me
+    - Amap
+    - Alipay
+    - Ant Group
+    - ByteDance
+    - Douyin
+    - TikTok
+    - Tencent
+    - WeChat
+    - Weixin
+    - JD.com
+    - Pinduoduo
+    - Temu
+    - Shopee
+    - Sea Limited
+    - Grab
+    - Baidu
+    - Kuaishou
+    - Meituan
+    - Xiaohongshu
+    - Rakuten
+    - Naver
+    - Coupang
+    - Flipkart
+    - Jio
+
+advertising_general:
+  weight_in_title: 10
+  weight_in_desc: 5
+  keywords:
+    - advertising
+    - ads
+    - advertisers
+    - adtech
+    - martech
+    - media buying
+    - analytics
+    - marketing
+    - CMO
+    - CPM
+    - CTR
+    - ad business
+    - ad platform
+
+generic_industry:
+  weight_in_title: 5
+  weight_in_desc: 3
+  keywords:
+    - merger
+    - acquisition
+    - IPO
+    - revenue
+    - earnings
+    - GMV
+    - e-commerce
+    - ecommerce
+    - marketplace
+    - loyalty
+    - membership
+    - subscription
+    - investment
+    - regulation
+    - antitrust
+
+# Темы, которые отбрасываем даже при ненулевом скору (зеркало exclusions).
+# Гейминг НЕ исключаем: игровая монетизация (Tencent) для Азии релевантна.
+exclusions:
+  - cryptocurrency
+  - crypto
+  - casino
+  - sports betting
+  - print advertising
+  - out-of-home
+  - billboard
+
+# Ключевые слова, которые перепроверяют exclusion
+override_keywords:
+  - programmatic
+  - DSP
+  - SSP
+  - retail media
+  - commerce media
+  - CTV
+  - DOOH
+
+# Признак news roundup в заголовке (3+ semicolons)
+roundup_semicolon_threshold: 3
+
+# Порог прохождения. НИЖЕ мирового (20): 1 источник на всю Азию, рынок закрытый —
+# грубую отбраковку на L1 не делаем агрессивной, решает семантический GLM (уровень 2).
+# 15 даёт запас статье с одним платформенным попаданием (Alibaba=20 > 15).
+score_threshold: 15
