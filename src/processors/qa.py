@@ -172,7 +172,10 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str,
                 elif url == primary_url:
                     result.fail(f"additional_sources[{i}] дублирует primary source")
 
-    if slug in existing_slugs:
+    # Дайджест переиздаётся под slug=неделя (перезаписывает файл той же недели) —
+    # для него совпадение slug с уже опубликованным легально. Проверка дублей
+    # slug только для статей (там два разных материала не должны коллизить).
+    if article_type != "digest" and slug in existing_slugs:
         result.fail(f"slug «{slug}» уже занят")
 
     for pattern in _CLICHE_RE:
