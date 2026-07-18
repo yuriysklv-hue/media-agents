@@ -41,6 +41,11 @@ DESCRIPTION_MAX = 160
 BODY_MIN_CHARS = 500
 TAGS_MIN, TAGS_MAX = 3, 7
 
+# Границы длины заголовка по типам: у дайджеста верх шире (100) — он суммирует
+# несколько сюжетов недели, заголовок естественно длиннее новостного хедлайна.
+# Схема сайта длину title не ограничивает; это редакционная планка QA.
+TITLE_LIMITS = {"news": (50, 80), "digest": (50, 100)}
+
 # Требования к длине по типам материалов (символы тела с пробелами).
 BODY_LIMITS = {"news": (500, 6000), "digest": (2000, 20000)}
 
@@ -108,8 +113,9 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str,
         return result  # дальше проверять нечего
 
     title = str(meta["title"])
-    if not (TITLE_MIN <= len(title) <= TITLE_MAX):
-        result.fail(f"title {len(title)} символов (нужно {TITLE_MIN}-{TITLE_MAX})")
+    title_min, title_max = TITLE_LIMITS.get(article_type, (TITLE_MIN, TITLE_MAX))
+    if not (title_min <= len(title) <= title_max):
+        result.fail(f"title {len(title)} символов (нужно {title_min}-{title_max})")
 
     if len(str(meta["description"])) > DESCRIPTION_MAX:
         result.fail(f"description длиннее {DESCRIPTION_MAX} символов")

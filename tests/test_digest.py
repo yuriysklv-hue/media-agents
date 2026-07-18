@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.processors import enricher
 from src.publishers import media_repo
 from src.utils.frontmatter import render_markdown
 from src.writers import digest_writer
@@ -108,6 +109,34 @@ def test_missing_news_dir_is_empty(tmp_path, monkeypatch):
     # папки коллекции нет (новый/пустой репо) → пустой список, не падаем
     monkeypatch.setattr(media_repo, "clone_or_update_media", lambda: tmp_path)
     assert _news_for_week_from_site("2026-W29") == []
+
+
+# --- enricher: slug дайджеста = ISO-неделя, не транслит заголовка ---
+
+class _FakeState:
+    state_dir = Path("/tmp")
+    def load_published(self):
+        return []
+
+
+def test_digest_slug_is_week(tmp_path, monkeypatch):
+    # LLM-обогащение мокаем (без сети): enricher уйдёт в детерминированный путь
+    monkeypatch.setattr(enricher, "_llm_enrich", lambda *a, **k: {})
+    draft = tmp_path / "draft-2026-w29.md"
+    meta = {
+        "title": "PayPal доказывает ROI retail media, а атрибуция уходит в кризис",
+        "description": "Дайджест недели.",
+        "pubDate": "2026-07-18T18:00:00Z",
+        "category": "adtech-world",
+        "geo": ["МИР"],
+        "tags": ["weekly-digest"],
+        "week": "2026-W29",
+    }
+    draft.write_text(render_markdown(meta, "Тело дайджеста. " * 200), encoding="utf-8")
+
+    out = enricher.enrich_draft(draft, _FakeState(), article_type="digest")
+    # slug = неделя (эталон media: 2026-w27.md), а НЕ paypal-...
+    assert out.name == "2026-w29.md"
 
 
 # --- блок списка новостей для промпта ---

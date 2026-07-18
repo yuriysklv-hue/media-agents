@@ -37,6 +37,33 @@ def test_short_title_fails():
     assert _check({"title": "Коротко"}).status == "FAIL"
 
 
+def _check_digest(title):
+    meta = {
+        "title": title,
+        "description": "Дайджест недели: краткое описание для SEO в пределах лимита.",
+        "pubDate": "2026-07-06T12:00:00Z",
+        "author": "news-world",
+        "category": "adtech-world",
+        "geo": ["МИР"],
+        "tags": ["weekly-digest", "retail-media", "google"],
+        "week": "2026-W29",
+    }
+    body = "Главное за неделю. " * 200  # ~3800 знаков (digest min 2000)
+    return check_rules(meta, body, set(), slug="2026-w29", article_type="digest")
+
+
+def test_digest_title_82_passes():
+    """82 символа: у новости FAIL (50-80), у дайджеста PASS (50-100)."""
+    t82 = "PayPal доказывает ROI retail media, а атрибуция уходит в кризис доверия всего рынка"
+    assert 80 < len(t82) <= 100, len(t82)
+    assert _check({"title": t82}).status == "FAIL"      # news
+    assert _check_digest(t82).status == "PASS"           # digest
+
+
+def test_digest_title_over_100_fails():
+    assert _check_digest("Слово " * 25).status == "FAIL"  # >100 симв.
+
+
 def test_additional_sources_valid_passes():
     extras = [{"title": "Digiday", "url": "https://digiday.com/x"}]
     assert _check({"additional_sources": extras}).status == "PASS"
