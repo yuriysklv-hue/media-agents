@@ -7,6 +7,7 @@ from pathlib import Path
 from ..llm_client import pipeline_client
 from ..utils.config import DATA_DIR, fill_prompt, load_prompt
 from ..utils.frontmatter import render_markdown, split_front_matter
+from ..utils.legal import add_restricted_org_footnotes
 from ..utils.logger import get_logger
 from ..utils.state import StateManager
 
@@ -104,6 +105,7 @@ def write_digest(state: StateManager, week: str | None = None) -> Path | None:
     )
 
     meta, body = split_front_matter(answer)
+    body = add_restricted_org_footnotes(body)  # сноска о запрещённых в РФ (Meta/FB/Instagram)
     meta["week"] = week
     meta["sources_count"] = len(items)
     meta.setdefault("category", "adtech-world")

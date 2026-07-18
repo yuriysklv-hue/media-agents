@@ -105,6 +105,26 @@ def test_empty_week_returns_none(monkeypatch):
     assert write_digest(state=None, week="2026-W29") is None
 
 
+def test_digest_adds_restricted_org_footnote(tmp_path, monkeypatch):
+    # Комплаенс: упоминание Meta в дайджесте → маркер + сноска о запрете в РФ
+    monkeypatch.setattr(digest_writer, "_news_for_week_from_site", lambda week: [
+        {"slug": "s", "title": "t", "category": "adtech-world",
+         "source_name": "X", "pub_date": "2026-07-15T09:00:00Z"}])
+
+    class _FakeClient:
+        def chat(self, **kw):
+            return ("---\ntitle: Дайджест недели\n---\n\n"
+                    "## Кратко\n\nMeta обновила рекламный кабинет для брендов.")
+
+    monkeypatch.setattr(digest_writer, "pipeline_client", lambda stage, state: (_FakeClient(), "m"))
+    monkeypatch.setattr(digest_writer, "DRAFTS_DIR", tmp_path)
+
+    path = write_digest(state=None, week="2026-W29")
+    text = path.read_text(encoding="utf-8")
+    assert "Meta\\*" in text                    # первое упоминание помечено
+    assert "экстремистской организацией" in text  # текст сноски в конце
+
+
 def test_missing_news_dir_is_empty(tmp_path, monkeypatch):
     # папки коллекции нет (новый/пустой репо) → пустой список, не падаем
     monkeypatch.setattr(media_repo, "clone_or_update_media", lambda: tmp_path)
