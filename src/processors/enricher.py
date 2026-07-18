@@ -126,6 +126,13 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news",
     raw_slug = generate_slug(raw_slug)  # нормализация LLM-варианта
     slug = ensure_unique(raw_slug, _existing_slugs(state, path.parent) - {path.stem})
 
+    # Дайджест: slug = ISO-неделя (эталон media: 2026-w27.md), а не транслит
+    # заголовка. URL дайджеста стабилен (коллекция digest, /digest/<week>) и не
+    # зависит от редакционного хедлайна; ensure_unique не нужен — неделя уникальна,
+    # повторный прогон недели должен перезаписать файл, а не плодить week-2.
+    if article_type == "digest" and meta.get("week"):
+        slug = str(meta["week"]).lower()
+
     description = str(enriched.get("description") or meta.get("description") or "").strip()
     if not description:
         description = " ".join(body.split())  # фолбэк: начало тела одной строкой
