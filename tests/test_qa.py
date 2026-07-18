@@ -37,7 +37,7 @@ def test_short_title_fails():
     assert _check({"title": "Коротко"}).status == "FAIL"
 
 
-def _check_digest(title):
+def _check_digest(title, existing=None):
     meta = {
         "title": title,
         "description": "Дайджест недели: краткое описание для SEO в пределах лимита.",
@@ -49,7 +49,7 @@ def _check_digest(title):
         "week": "2026-W29",
     }
     body = "Главное за неделю. " * 200  # ~3800 знаков (digest min 2000)
-    return check_rules(meta, body, set(), slug="2026-w29", article_type="digest")
+    return check_rules(meta, body, existing or set(), slug="2026-w29", article_type="digest")
 
 
 def test_digest_title_82_passes():
@@ -62,6 +62,17 @@ def test_digest_title_82_passes():
 
 def test_digest_title_over_100_fails():
     assert _check_digest("Слово " * 25).status == "FAIL"  # >100 симв.
+
+
+def test_digest_slug_reissue_allowed():
+    """Дайджест переиздаётся под slug=неделя → занятый slug НЕ бракуется."""
+    title = "Retail media обгоняет соцсети, а Google снова тянет с отказом от cookie"
+    assert _check_digest(title, existing={"2026-w29"}).status == "PASS"
+
+
+def test_news_slug_duplicate_still_fails():
+    """У новости совпадение slug с опубликованным — по-прежнему FAIL."""
+    assert _check(slugs={"google-dsp"}, slug="google-dsp").status == "FAIL"
 
 
 def test_additional_sources_valid_passes():
