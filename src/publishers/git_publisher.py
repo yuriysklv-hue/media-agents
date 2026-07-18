@@ -7,7 +7,6 @@ GitHub REST API (requests + GH_TOKEN) — gh CLI не требуется.
 """
 from __future__ import annotations
 
-import os
 import shutil
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -15,14 +14,14 @@ from pathlib import Path
 
 import requests
 
-from ..utils.config import ROOT, env_flag
+from ..utils.config import env_flag
 from ..utils.frontmatter import split_front_matter
 from ..utils.logger import get_logger
 from ..utils.state import StateManager, read_jsonl, utcnow_iso
+from .media_repo import CLONE_DIR, _git_env, _prepare_clone
 
 log = get_logger("publisher")
 
-CLONE_DIR = ROOT / "media-clone"
 GITHUB_API = "https://api.github.com"
 
 
@@ -40,33 +39,6 @@ class PublishResult:
     branch: str | None = None
     dry_run: bool = False
     errors: list[str] = field(default_factory=list)
-
-
-def _git_env() -> dict:
-    token = os.environ.get("GH_TOKEN", "").strip()
-    repo = os.environ.get("MEDIA_REPO", "").strip()
-    url = os.environ.get("MEDIA_GIT_URL", "").strip()
-    if not url:
-        if not (token and repo):
-            raise RuntimeError("нужны GH_TOKEN + MEDIA_REPO (или MEDIA_GIT_URL)")
-        url = f"https://x-access-token:{token}@github.com/{repo}.git"
-    return {"token": token, "repo": repo, "url": url,
-            "subdir": os.environ.get("MEDIA_SITE_SUBDIR", "media-site").strip()}
-
-
-def _prepare_clone(git_url: str):
-    """Свежий клон media (или fetch+reset, если клон уже есть)."""
-    from git import Repo
-
-    if CLONE_DIR.exists():
-        repo = Repo(CLONE_DIR)
-        repo.remotes.origin.set_url(git_url)
-        repo.remotes.origin.fetch("main")
-        repo.git.checkout("main")
-        repo.git.reset("--hard", "origin/main")
-    else:
-        repo = Repo.clone_from(git_url, CLONE_DIR, branch="main", depth=1)
-    return repo
 
 
 def _create_pr(cfg: dict, branch: str, title: str, body: str) -> str:

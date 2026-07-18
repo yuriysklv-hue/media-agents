@@ -28,15 +28,42 @@ def week_bounds(week: str) -> tuple[date, date]:
     return monday, monday + timedelta(days=6)
 
 
-def _news_for_week(state: StateManager, week: str) -> list[dict]:
+def _news_for_week_from_site(week: str) -> list[dict]:
+    """Новости недели из ЖИВОЙ коллекции сайта (репо media), а не из published.jsonl.
+
+    Источник истины — то, что реально смёржено и лежит на сайте
+    (`media-site/src/content/news/*.md`): `published.jsonl` = «отправлено в PR», но
+    часть материалов владелец удаляет из PR перед мержем, а `pr_merged` не
+    отслеживается → дайджест по нему дал бы битые ссылки `/article/{slug}`. Здесь
+    slug = имя файла = роут сайта, поэтому ссылки гарантированно валидны.
+
+    Клон не поднялся → исключение пробрасывается наверх (дайджест не выпускаем).
+    Папки коллекции нет / нет статей за неделю → пустой список (дайджест не пишем).
+    """
+    from ..publishers.media_repo import clone_or_update_media, news_dir
+
+    ndir = news_dir(clone_or_update_media())
+    if not ndir.exists():
+        return []
+
     start, end = week_bounds(week)
-    items = []
-    for rec in state.load_published():
-        if rec.get("type") != "news":
+    lo, hi = start.isoformat(), end.isoformat()
+    items: list[dict] = []
+    for md in sorted(ndir.glob("*.md")):
+        meta, _ = split_front_matter(md.read_text(encoding="utf-8"))
+        pub = str(meta.get("pubDate", ""))[:10]  # pubDate — ISO с временем UTC, берём date-часть
+        if not (lo <= pub <= hi):
             continue
-        pub = str(rec.get("pub_date", ""))[:10]
-        if pub and start.isoformat() <= pub <= end.isoformat():
-            items.append(rec)
+        source = meta.get("source") or {}
+        items.append({
+            "slug": md.stem,  # slug = имя файла = роут /article/<slug>
+            "title": meta.get("title", ""),
+            "category": meta.get("category", ""),
+            "geo": meta.get("geo", []),
+            "source_name": source.get("title", ""),
+            "source_url": source.get("url", ""),
+            "pub_date": str(meta.get("pubDate", "")),
+        })
     return sorted(items, key=lambda r: r.get("pub_date", ""))
 
 
@@ -57,9 +84,9 @@ def _news_list_block(items: list[dict]) -> str:
 def write_digest(state: StateManager, week: str | None = None) -> Path | None:
     """Пишет черновик data/drafts/digest/draft-{week}.md. None — новостей нет."""
     week = week or iso_week()
-    items = _news_for_week(state, week)
+    items = _news_for_week_from_site(week)
     if not items:
-        log.warning("за неделю %s нет опубликованных новостей — дайджест не пишем", week)
+        log.warning("за неделю %s нет живущих на сайте новостей — дайджест не пишем", week)
         return None
 
     start, end = week_bounds(week)
