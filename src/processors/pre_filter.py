@@ -25,6 +25,18 @@ BATCH_SIZE = 50
 LLM_SCORE_THRESHOLD = 5
 
 
+def select_keywords(item: dict, dicts: dict) -> dict:
+    """Словарь Pre-Filter для item: по РЕГИОНУ (asia), затем по языку (ru), иначе en.
+
+    asia приходит на английском (как мир) → по языку не отличить, поэтому регион
+    проверяем первым. ru приходит на русском → своя ветка по языку.
+    `dicts` = {"en", "ru", "asia"} → загруженные keyword-конфиги.
+    """
+    if item.get("region") == "asia":
+        return dicts["asia"]
+    return dicts.get(item.get("language", "en"), dicts["en"])
+
+
 def _relevance(item: dict) -> tuple[float, float]:
     """Ключ ранжирования: LLM-скор приоритетнее, иначе keyword-скор."""
     llm = item.get("llm_score")
@@ -92,12 +104,13 @@ def run_pre_filter(state: StateManager, since: str | None = None) -> PreFilterRe
         log.info("нет новых raw_items — pre-filter пропущен")
         return result
 
-    # Словарь выбирается по языку item: ru-источники приходят на русском,
-    # англоязычный keywords.yaml по ним не сработает (см. keywords_ru.yaml).
-    keywords_by_lang = {"en": load_config("keywords"), "ru": load_config("keywords_ru")}
+    keywords_en = load_config("keywords")
+    dicts = {"en": keywords_en, "ru": load_config("keywords_ru"),
+             "asia": load_config("keywords_asia")}
+
     survivors = []
     for item in raw_items:
-        keywords_config = keywords_by_lang.get(item.get("language", "en"), keywords_by_lang["en"])
+        keywords_config = select_keywords(item, dicts)
         score = passes_keyword_filter(item["title"], item["summary"], keywords_config)
         if score.score <= 0:
             continue

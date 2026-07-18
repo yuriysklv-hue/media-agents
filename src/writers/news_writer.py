@@ -79,8 +79,8 @@ def _finalize_meta(meta: dict, event: dict, primary: dict) -> dict:
     meta["pubDate"] = utcnow_iso()
     # Сид категории/geo по региону источника; Enricher уточнит и проставит автора.
     region = event.get("region", "world")
-    meta.setdefault("category", "adtech-ru" if region == "ru" else "adtech-world")
-    meta.setdefault("geo", ["РФ"] if region == "ru" else ["МИР"])
+    meta.setdefault("category", {"ru": "adtech-ru", "asia": "adtech-asia"}.get(region, "adtech-world"))
+    meta.setdefault("geo", {"ru": ["РФ"], "asia": ["АЗИЯ"]}.get(region, ["МИР"]))
     return meta
 
 

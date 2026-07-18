@@ -53,3 +53,16 @@ rss_feeds:
     region: ru
     max_age_days: 30
     enabled: true
+
+  # --- Азиатские источники. Приходят на английском (language: en) → Translator
+  # переводит по стандартному пути. region: asia → Enricher/Writer ставят
+  # adtech-asia / АЗИЯ / news-asia; Pre-Filter выбирает keywords_asia по РЕГИОНУ
+  # (не языку — язык en совпадает с миром). max_age_days: 30 — корпоративный
+  # ньюсрум с архивным хвостом (урок RU run #13). Коллектор уже шлёт User-Agent
+  # (rss_collector.USER_AGENT) — Alizila без него отдаёт 403. ---
+  - name: Alizila
+    url: https://www.alizila.com/feed/
+    language: en
+    region: asia
+    max_age_days: 30
+    enabled: true

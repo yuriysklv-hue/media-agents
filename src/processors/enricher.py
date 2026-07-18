@@ -60,6 +60,11 @@ def _region_hint(region: str) -> str:
         return ("Регион источника: РОССИЯ. Тема почти всегда касается российского "
                 "рынка — по умолчанию ставь category: adtech-ru и geo: [\"РФ\"]. "
                 "Отступай от этого, только если материал явно про мировой рынок.")
+    if region == "asia":
+        return ("Регион источника: АЗИЯ. Тема почти всегда касается азиатского "
+                "рынка (Alibaba и экосистема) — по умолчанию ставь category: "
+                "adtech-asia и geo: [\"АЗИЯ\"]. Отступай, только если материал "
+                "явно про мировой рынок.")
     return ("Регион источника: МИР. По умолчанию category: adtech-world, "
             "geo: [\"МИР\"].")
 
@@ -105,15 +110,15 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news",
                  region: str = "world") -> Path:
     """Дополняет front-matter черновика и переименовывает файл в {slug}.md.
 
-    region (из события) делает category/geo/author детерминированными для РФ:
-    ru-источник → adtech-ru / geo ["РФ"] / автор news-ru (по аналогии с миром,
-    где источник world → adtech-world / ["МИР"] / news-world).
+    region (из события) делает category/geo/author детерминированными по региону:
+    ru → adtech-ru / ["РФ"] / news-ru; asia → adtech-asia / ["АЗИЯ"] / news-asia;
+    world → adtech-world / ["МИР"] / news-world.
     """
     vocab = load_config("vocabulary")
     authors = load_config("authors")
     meta, body = split_front_matter(path.read_text(encoding="utf-8"))
-    default_category = "adtech-ru" if region == "ru" else "adtech-world"
-    default_geo = ["РФ"] if region == "ru" else ["МИР"]
+    default_category = {"ru": "adtech-ru", "asia": "adtech-asia"}.get(region, "adtech-world")
+    default_geo = {"ru": ["РФ"], "asia": ["АЗИЯ"]}.get(region, ["МИР"])
 
     enriched: dict = {}
     try:
@@ -146,8 +151,8 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news",
 
     # geo детерминирован по региону источника: ru → РФ (см. ТЗ 4.5). LLM тут не
     # спрашиваем — регион источника надёжнее семантической догадки.
-    if region == "ru":
-        meta["geo"] = ["РФ"]
+    if region in ("ru", "asia"):
+        meta["geo"] = default_geo  # детерминированно по региону источника
     else:
         geo = enriched.get("geo") or meta.get("geo") or default_geo
         meta["geo"] = [g for g in geo if g in vocab["geo_values"]] or default_geo
@@ -165,6 +170,8 @@ def enrich_draft(path: Path, state: StateManager, article_type: str = "news",
     # выходить от «Службы новостей Россия», а не от «Службы новостей Мир».
     if region == "ru":
         meta["author"] = "news-ru"
+    elif region == "asia":
+        meta["author"] = "news-asia"
     else:
         meta["author"] = authors["category_author_map"].get(
             category, authors.get("default_author", "news-world")
