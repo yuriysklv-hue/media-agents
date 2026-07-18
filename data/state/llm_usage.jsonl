@@ -352,3 +352,6 @@
 {"timestamp": "2026-07-18T13:37:23Z", "stage": "news_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2256, "output_tokens": 709, "cost_usd": 0.001389, "item_id": "76e5739d69329fe9"}
 {"timestamp": "2026-07-18T13:37:27Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 827, "output_tokens": 135, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-18T13:37:29Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 1174, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-18T17:59:44Z", "stage": "digest_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 3214, "output_tokens": 2733, "cost_usd": 0.003874, "item_id": "2026-W29"}
+{"timestamp": "2026-07-18T17:59:49Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 813, "output_tokens": 132, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-18T17:59:51Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2321, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
