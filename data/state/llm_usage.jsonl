@@ -355,3 +355,6 @@
 {"timestamp": "2026-07-18T17:59:44Z", "stage": "digest_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 3214, "output_tokens": 2733, "cost_usd": 0.003874, "item_id": "2026-W29"}
 {"timestamp": "2026-07-18T17:59:49Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 813, "output_tokens": 132, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-18T17:59:51Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2321, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-18T19:45:38Z", "stage": "digest_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 3515, "output_tokens": 3269, "cost_usd": 0.004545, "item_id": "2026-W29"}
+{"timestamp": "2026-07-18T19:45:43Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 821, "output_tokens": 130, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-18T19:45:45Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2305, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
