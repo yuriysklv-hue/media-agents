@@ -613,9 +613,9 @@ pytest                                # тесты
   предустановочные: numpy/sklearn для `test_tfidf` не встал в песочнице, не связано).
 
 **Осталось / развилки перед боем:**
-- **`author` для справочника** — коллекция `spravochnik` в `content.config.ts` НОВАЯ; решить:
-  поле optional (writer сейчас автора НЕ пишет) ИЛИ завести `spravochnik-editor` в `media/authors/`.
-  Сейчас backend автора не эмитит — под optional-схему.
+- **`author` для справочника — РЕШЕНО (владелец 19.07): поле НЕ используется.** Коллекция
+  `spravochnik` без `author`; backend автора не эмитит (writer его не проставляет). На сайте
+  не добавлять `author: reference('authors')` в схему `spravochnik`.
 - **Фаза 2 (site, репо `media`, отдельный PR, нужен `add_repo media`):** коллекция `spravochnik`
   (`z.discriminatedUnion` по type ИЛИ суперсет optional), роуты `/spravochnik/`+`/spravochnik/[slug]`,
   **JSON-LD генерится в Astro из `facts`+`type`** (не из front-matter!), `BreadcrumbList`, render-time
