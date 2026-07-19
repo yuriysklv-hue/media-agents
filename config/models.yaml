@@ -32,3 +32,6 @@ pipeline:
   digest_writer: deepseek:chat
   enricher: glm:flash
   qa_style: glm:flash
+  # База знаний (Spravochnik) — отдельный пайплайн
+  spravochnik_writer: deepseek:chat
+  spravochnik_fact_checker: glm:flash

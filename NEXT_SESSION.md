@@ -2,6 +2,21 @@
 
 > Хендофф от сессии 09.07.2026. **Пайплайн запущен, первый боевой батч (9 статей) опубликован и подтверждён живым на сайте `1screen.ru`.** Полный цикл (сбор → PR → merge → деплой на Timeweb → показ) замкнут. Ниже: что сделано, что осталось, и с чего начать.
 
+## 🆕 Сессия 19.07.2026: База знаний (Spravochnik) — новый пайплайн
+
+> **Новый раздел сайта + отдельный пайплайн агентов** для evergreen-справочника терминов/
+> компаний/технологий/организаций adtech (`/spravochnik/`). Независим от новостного пайплайна.
+> Исходное ТЗ владельца сверено с кодом и переписано → **`для_кодинга/ТЗ_База_знаний.md` (v2)**.
+> Ключевые правки против оригинала (раздел 0 ТЗ): JSON-LD генерится в Astro, а не пишется LLM
+> во front-matter; добавлена сноска РКН (Meta и т.п.); Wikipedia с normalize+timeout;
+> related — по живой коллекции сайта, а не `published.jsonl`; cron → workflow Actions;
+> rules-QA уровень 1; переиспользование `git_publisher`/`media_repo`.
+>
+> **Фаза 1 (backend, media-agents)** — реализуется в этой сессии (`src/spravochnik/`).
+> **Фаза 2 (site, media)** — отдельный PR, требует `add_repo media` (schema/роуты/layout/JSON-LD/nav/виджет).
+> **Фаза 3** — авто-линкер новость→термин (SEO-мультипликатор).
+> Статус реализации — в конце этого файла (секция «Реализация Базы знаний»).
+
 ## 🎯 Приоритетный план (утверждён 12.07.2026 — с этого начинать)
 
 Порядок работ на следующие сессии. Детали по каждой задаче — в секциях ниже (по номерам старых «Задач»).
@@ -575,3 +590,38 @@ pytest                                # тесты
 
 - Пресс-релизы/блоги/Азия, review/report, Telegram-алерты, эскалация на Claude — следующие итерации (ТЗ, раздел 1.1).
 - Старый GLM-ключ `d57ac7c8…` мог засветиться в чате прошлых сессий — проверить, что в секретах боевой (новый).
+
+## Реализация Базы знаний (Spravochnik) — Фаза 1 backend (19.07.2026)
+
+**Статус: backend реализован в media-agents, тесты зелёные (19 новых). Боем НЕ проверено
+(нужен прогон `Spravochnik Pipeline` → Run workflow, dry_run). Site-часть (Фаза 2) —
+в репо `media`, ещё не начата.** ТЗ: `для_кодинга/ТЗ_База_знаний.md`.
+
+**Сделано (media-agents):**
+- Модуль `src/spravochnik/`: `queue_manager` (очередь + lifecycle + sync merged PR),
+  `researcher` (Wikipedia с normalize+timeout, related по живой коллекции сайта),
+  `writer` (DeepSeek + сноска РКН `legal.add_restricted_org_footnotes` + finalize-гейт,
+  JSON-LD НЕ пишет), `fact_checker` (GLM, best-effort, без Wiki → не блокирует),
+  `qa` (rules уровень 1: схема/facts/разделы/описание≤160/CJK-мусор/thin/slug), `publisher`
+  (reuse `media_repo`, draft-PR), `run` (оркестрация + sync).
+- `config/spravochnik_queue.yaml` (8 стартовых айтемов, приоритет 1).
+- Промпты `spravochnik_writer.md` / `spravochnik_fact_checker.md`.
+- `models.yaml`: стадии `spravochnik_writer: deepseek:chat`, `spravochnik_fact_checker: glm:flash`.
+- Workflow `.github/workflows/spravochnik.yml` (cron 6ч + dispatch, `permissions: contents: write`,
+  «Commit queue state»). timeout 30 мин.
+- Тесты `tests/test_spravochnik.py` (19, без сети/LLM). Полный прогон: 118 passed (6 падений —
+  предустановочные: numpy/sklearn для `test_tfidf` не встал в песочнице, не связано).
+
+**Осталось / развилки перед боем:**
+- **`author` для справочника** — коллекция `spravochnik` в `content.config.ts` НОВАЯ; решить:
+  поле optional (writer сейчас автора НЕ пишет) ИЛИ завести `spravochnik-editor` в `media/authors/`.
+  Сейчас backend автора не эмитит — под optional-схему.
+- **Фаза 2 (site, репо `media`, отдельный PR, нужен `add_repo media`):** коллекция `spravochnik`
+  (`z.discriminatedUnion` по type ИЛИ суперсет optional), роуты `/spravochnik/`+`/spravochnik/[slug]`,
+  **JSON-LD генерится в Astro из `facts`+`type`** (не из front-matter!), `BreadcrumbList`, render-time
+  фильтр `related` (иначе 404), `SpravochnikLayout`/виджет/nav, OG, секция в `llms.txt`. Раздел 12 ТЗ.
+- **Секреты:** те же, что у новостей (DEEPSEEK/ZHIPU/GH_TOKEN/MEDIA_REPO/MEDIA_SITE_SUBDIR) — уже
+  в репо, доп. секретов нет.
+- **Первый прогон:** `Spravochnik Pipeline` → Run workflow с `dry_run=true` — проверить, что
+  Wikipedia отвечает из Actions, writer выдаёт валидный front-matter, rules-QA не бракует всё.
+  ⚠️ Локально LLM/Wiki-часть не тестируются (ключи в Secrets, egress песочницы режет часть хостов).
