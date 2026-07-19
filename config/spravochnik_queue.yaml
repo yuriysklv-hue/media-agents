@@ -8,11 +8,11 @@ items:
   term: Adobe
   type: company
   subtype: platform
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-19T18:54:31Z'
   slug: adobe
   pr_url: https://github.com/yuriysklv-hue/media/pull/59
   pr_number: 59
@@ -20,12 +20,14 @@ items:
   term: Criteo
   type: company
   subtype: platform
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: criteo
+  pr_url: https://github.com/yuriysklv-hue/media/pull/61
+  pr_number: 61
 - id: magnite
   term: Magnite
   type: company

@@ -360,3 +360,5 @@
 {"timestamp": "2026-07-18T19:45:45Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2305, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-19T14:24:31Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1327, "output_tokens": 988, "cost_usd": 0.001445, "item_id": "adobe"}
 {"timestamp": "2026-07-19T14:24:35Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 510, "output_tokens": 129, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-19T18:54:48Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2069, "output_tokens": 952, "cost_usd": 0.001606, "item_id": "criteo"}
+{"timestamp": "2026-07-19T18:54:54Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 549, "output_tokens": 194, "cost_usd": 0.0, "item_id": null}
