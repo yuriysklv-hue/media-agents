@@ -8,9 +8,13 @@
 > `/spravochnik/` (термины/компании/технологии/организации adtech), независим от новостного.
 > Свой модуль `src/spravochnik/`, своя очередь `config/spravochnik_queue.yaml`, свой workflow
 > `spravochnik.yml`. ТЗ (сверено с кодом) — `для_кодинга/ТЗ_База_знаний.md`. Backend в
-> media-agents; site-часть (schema/роуты/JSON-LD/nav) — в репо `media` (отдельный PR).
+> media-agents; **site-часть (Фаза 2) СМЁРЖЕНА и на сайте (PR `media`#58); первый материал
+> Adobe опубликован (PR `media`#59) и живёт на `/spravochnik/adobe/`** — проверено боем 19.07.2026.
 > JSON-LD генерится в Astro из типизированного `facts`, а не пишется LLM во front-matter.
 > Комплаенс РКН (сноска Meta/FB/Instagram) — тот же `legal.add_restricted_org_footnotes`.
+> ⚠️ Первый материал вскрыл косметику: writer пишет `facts.subtype` свободной строкой
+> («Публичная компания») вместо таксономии `platform/agency/broadcaster/media` из ТЗ — сборку
+> сайта не ломает (схема принимает любую строку), но для единообразия подтянуть промпт писателя.
 
 ## Статус (13.07.2026)
 
