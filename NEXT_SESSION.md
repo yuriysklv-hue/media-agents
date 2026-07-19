@@ -616,10 +616,12 @@ pytest                                # тесты
 - **`author` для справочника — РЕШЕНО (владелец 19.07): поле НЕ используется.** Коллекция
   `spravochnik` без `author`; backend автора не эмитит (writer его не проставляет). На сайте
   не добавлять `author: reference('authors')` в схему `spravochnik`.
-- **Фаза 2 (site, репо `media`, отдельный PR, нужен `add_repo media`):** коллекция `spravochnik`
-  (`z.discriminatedUnion` по type ИЛИ суперсет optional), роуты `/spravochnik/`+`/spravochnik/[slug]`,
-  **JSON-LD генерится в Astro из `facts`+`type`** (не из front-matter!), `BreadcrumbList`, render-time
-  фильтр `related` (иначе 404), `SpravochnikLayout`/виджет/nav, OG, секция в `llms.txt`. Раздел 12 ТЗ.
+- **Фаза 2 (site, репо `media`, отдельный PR, нужен доступ к `media`):** готовый
+  implementation-чеклист — **`для_кодинга/ТЗ_База_знаний_Фаза2_сайт.md`** (файлы, схема
+  `z.discriminatedUnion`, код JSON-LD в Astro, фильтр `related`, виджет/nav/OG/llms.txt,
+  pre-flight «что прочитать в media», приёмка). Делать в сессии с ДВУМЯ репо (`media-agents`+`media`).
+  ⚠️ В текущей сессии тулза `add_repo` недоступна — `media` подключить не удалось; нужна новая
+  сессия с двумя репо либо добавление `media` через интерфейс.
 - **Секреты:** те же, что у новостей (DEEPSEEK/ZHIPU/GH_TOKEN/MEDIA_REPO/MEDIA_SITE_SUBDIR) — уже
   в репо, доп. секретов нет.
 - **Первый прогон:** `Spravochnik Pipeline` → Run workflow с `dry_run=true` — проверить, что
