@@ -1,104 +1,88 @@
 # Очередь материалов Базы знаний (Spravochnik).
-# Владелец добавляет термины вручную (через Claude Code или CLI-обёртку).
-# Lifecycle: pending → writing → review → published
-#   ветки: revision (ручной reject с feedback), needs_fix (фактчек-блок), skipped
+# Владелец добавляет термины вручную; пайплайн пишет статусы обратно.
+# Lifecycle: pending → writing → review → published (ветки: revision, needs_fix, skipped)
 # ТЗ: для_кодинга/ТЗ_База_знаний.md
-#
-# Поля по типам:
-#   company      → subtype (platform|agency|broadcaster|media)
-#   technology   → developer
-#   term         → category (media_format|metric|methodology|concept)
-#   organization → full_name
 
 items:
-  # === КОМПАНИИ (платформы) ===
-  - id: adobe
-    term: Adobe
-    type: company
-    subtype: platform
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: adobe
-
-  - id: criteo
-    term: Criteo
-    type: company
-    subtype: platform
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: criteo
-
-  - id: magnite
-    term: Magnite
-    type: company
-    subtype: platform
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: magnite
-
-  # === ТЕХНОЛОГИИ ===
-  - id: advantage-plus
-    term: Advantage+
-    type: technology
-    developer: Meta
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: advantage-plus
-
-  - id: conversions-api
-    term: Conversions API
-    type: technology
-    developer: Meta
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: conversions-api
-
-  # === ТЕРМИНЫ ===
-  - id: ctv
-    term: CTV (Connected TV)
-    type: term
-    category: media_format
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: ctv
-
-  - id: first-party-data
-    term: First-party data
-    type: term
-    category: concept
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: first-party-data
-
-  # === ОРГАНИЗАЦИИ ===
-  - id: iab
-    term: IAB
-    type: organization
-    full_name: Interactive Advertising Bureau
-    status: pending
-    iteration: 0
-    feedback: null
-    created_at: "2026-07-19"
-    published_at: null
-    slug: iab
+- id: adobe
+  term: Adobe
+  type: company
+  subtype: platform
+  status: review
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: adobe
+  pr_url: https://github.com/yuriysklv-hue/media/pull/59
+  pr_number: 59
+- id: criteo
+  term: Criteo
+  type: company
+  subtype: platform
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: criteo
+- id: magnite
+  term: Magnite
+  type: company
+  subtype: platform
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: magnite
+- id: advantage-plus
+  term: Advantage+
+  type: technology
+  developer: Meta
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: advantage-plus
+- id: conversions-api
+  term: Conversions API
+  type: technology
+  developer: Meta
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: conversions-api
+- id: ctv
+  term: CTV (Connected TV)
+  type: term
+  category: media_format
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: ctv
+- id: first-party-data
+  term: First-party data
+  type: term
+  category: concept
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: first-party-data
+- id: iab
+  term: IAB
+  type: organization
+  full_name: Interactive Advertising Bureau
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-19'
+  published_at: null
+  slug: iab
