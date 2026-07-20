@@ -54,12 +54,14 @@ items:
   term: Conversions API
   type: technology
   developer: Meta
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: conversions-api
+  pr_url: https://github.com/yuriysklv-hue/media/pull/64
+  pr_number: 64
 - id: ctv
   term: CTV (Connected TV)
   type: term
