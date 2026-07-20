@@ -66,12 +66,14 @@ items:
   term: CTV (Connected TV)
   type: term
   category: media_format
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: ctv
+  pr_url: https://github.com/yuriysklv-hue/media/pull/65
+  pr_number: 65
 - id: first-party-data
   term: First-party data
   type: term

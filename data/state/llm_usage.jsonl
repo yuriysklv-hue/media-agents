@@ -385,3 +385,4 @@
 {"timestamp": "2026-07-20T09:02:51Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2567, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-20T13:51:57Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1690, "output_tokens": 1135, "cost_usd": 0.001705, "item_id": "conversions-api"}
 {"timestamp": "2026-07-20T13:51:59Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 684, "output_tokens": 23, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-20T19:28:21Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1993, "output_tokens": 977, "cost_usd": 0.001613, "item_id": "ctv"}
