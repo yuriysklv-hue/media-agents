@@ -7,6 +7,7 @@ slug из очереди, readingTime. JSON-LD Writer НЕ пишет — его
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from ..llm_client import pipeline_client
@@ -47,6 +48,56 @@ def _feedback_section(feedback: str | None, iteration: int) -> str:
         f"\n\nЭТО ИТЕРАЦИЯ {iteration}. Материал был возвращён с замечаниями:\n"
         f"{feedback}\nУчти эти замечания при переработке, остальное сохрани по существу."
     )
+
+
+# Маркер неподтверждённого факта из промпта писателя (spravochnik_writer.md):
+# {{fact_check: "..."}}. Кавычки любые (модель копирует пример с «ёлочками»),
+# регистр/пробелы/разделитель вольные. Non-greedy до первого закрывающего }}.
+_FACTCHECK_RE = re.compile(r"\{\{\s*fact[_\s-]?check\b[^}]*\}\}", re.IGNORECASE)
+_SENT_END = ".!?…"
+_SENT_CLOSERS = "»\"')”"
+
+
+def _sentence_span(text: str, m_start: int, m_end: int) -> tuple[int, int]:
+    """Границы предложения, несущего маркер [m_start:m_end], в пределах строки.
+
+    Назад — до конца прошлого предложения или начала строки; вперёд — до
+    терминатора (включая его и закрывающую кавычку/скобку). Не пересекаем \\n,
+    чтобы не задеть соседние заголовки/пункты списка.
+    """
+    i = m_start
+    while i > 0 and text[i - 1] not in _SENT_END and text[i - 1] != "\n":
+        i -= 1
+    j, n = m_end, len(text)
+    while j < n and text[j] not in _SENT_END and text[j] != "\n":
+        j += 1
+    while j < n and text[j] in _SENT_END:
+        j += 1
+    while j < n and text[j] in _SENT_CLOSERS:
+        j += 1
+    return i, j
+
+
+def _strip_unconfirmed_sentences(body: str) -> str:
+    """Вырезает предложения с маркером {{fact_check: …}} целиком.
+
+    Маркер — сигнал писателя «факта нет в research, не подтверждено». Публиковать
+    нельзя ни маркер, ни само недостоверное утверждение, поэтому убираем всё
+    несущее маркер предложение (а не только маркер). Идём справа налево, чтобы
+    индексы не съезжали. После — чистим осиротевшие пробелы и пустые абзацы.
+    Если тело просело ниже минимума — это поймает rules-QA (→ needs_fix).
+    """
+    if not _FACTCHECK_RE.search(body):
+        return body
+    for m in reversed(list(_FACTCHECK_RE.finditer(body))):
+        start, end = _sentence_span(body, m.start(), m.end())
+        body = body[:start] + body[end:]
+    body = re.sub(r"[ \t]+([.,;:!?…])", r"\1", body)  # пробел перед пунктуацией
+    body = re.sub(r"[ \t]{2,}", " ", body)            # сдвоенные пробелы
+    body = re.sub(r"[ \t]+\n", "\n", body)            # хвостовые пробелы
+    body = re.sub(r"\n[ \t]+", "\n", body)            # пробелы в начале строки (шаблоны плоские)
+    body = re.sub(r"\n{3,}", "\n\n", body)            # опустевшие абзацы
+    return body.strip() + "\n"
 
 
 def _clean_tags(tags) -> list[str]:
@@ -100,6 +151,10 @@ def write_material(item: dict, research: dict, state: StateManager) -> Path:
     )
     meta, body = split_front_matter(answer)  # ValueError решает вызывающий (run.py)
 
+    before = body
+    body = _strip_unconfirmed_sentences(body)  # вырезать неподтверждённые утверждения ({{fact_check}})
+    if body != before:
+        log.info("справочник %s: вырезаны неподтверждённые утверждения ({{fact_check}})", item["slug"])
     body = add_restricted_org_footnotes(body)  # сноска о запрещённых в РФ (комплаенс РКН)
     _finalize_meta(meta, item)
 

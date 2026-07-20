@@ -10,7 +10,12 @@ import os
 import pytest
 
 from src.spravochnik import qa, queue_manager as qm
-from src.spravochnik.writer import _clean_tags, _feedback_section, _finalize_meta
+from src.spravochnik.writer import (
+    _clean_tags,
+    _feedback_section,
+    _finalize_meta,
+    _strip_unconfirmed_sentences,
+)
 
 
 # --- queue_manager ---------------------------------------------------------
@@ -83,6 +88,56 @@ def test_clean_tags_caps_seven():
 def test_feedback_section_empty_without_feedback():
     assert _feedback_section(None, 1) == ""
     assert "ИТЕРАЦИЯ 2" in _feedback_section("добавь X", 2)
+
+
+# --- writer: вырезание неподтверждённых утверждений ------------------------
+
+def test_strip_removes_unconfirmed_sentence_keeps_rest():
+    # реальный кейс с Criteo, включая «ёлочки» из примера промпта
+    body = (
+        "Criteo — французская adtech-компания. "
+        "В 2026 году появилась информация о покупке компании фондами "
+        "{{fact_check: «дата не подтверждена»}}. "
+        "Компания работает в сфере retail media."
+    )
+    out = _strip_unconfirmed_sentences(body)
+    assert "fact_check" not in out and "{{" not in out
+    assert "появилась информация" not in out
+    assert "французская adtech-компания" in out
+    assert "retail media" in out
+
+
+def test_strip_noop_without_marker():
+    body = "## О компании\nОбычный текст без маркеров.\n"
+    assert _strip_unconfirmed_sentences(body) == body
+
+
+def test_strip_handles_curly_quotes_and_case():
+    body = "Факт один. Спорное утверждение {{Fact-Check: “нет данных”}}. Факт два."
+    out = _strip_unconfirmed_sentences(body)
+    assert "{{" not in out and "Спорное утверждение" not in out
+    assert "Факт один." in out and "Факт два." in out
+
+
+def test_strip_removes_multiple_and_collapses_empty_paragraph():
+    body = (
+        "## Определение\nТермин значит X.\n\n"
+        "Только это спорно {{fact_check: \"нет данных\"}}.\n\n"
+        "## Контекст\nA. Ещё спорно {{fact_check: \"?\"}}. B."
+    )
+    out = _strip_unconfirmed_sentences(body)
+    assert "fact_check" not in out
+    assert "\n\n\n" not in out  # опустевший абзац схлопнут
+    assert "## Определение" in out and "## Контекст" in out
+    assert "Термин значит X." in out and "A." in out and "B." in out
+
+
+def test_strip_removes_unconfirmed_bullet():
+    body = ("## Ключевые продукты\n- Продукт A\n"
+            "- Слух про продукт B {{fact_check: \"не подтверждено\"}}\n- Продукт C")
+    out = _strip_unconfirmed_sentences(body)
+    assert "fact_check" not in out and "продукт B" not in out
+    assert "Продукт A" in out and "Продукт C" in out
 
 
 # --- rules-QA --------------------------------------------------------------
