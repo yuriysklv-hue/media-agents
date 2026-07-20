@@ -32,9 +32,9 @@ items:
   term: Magnite
   type: company
   subtype: platform
-  status: pending
+  status: needs_fix
   iteration: 0
-  feedback: null
+  feedback: facts.founders обязателен для типа company, но пуст
   created_at: '2026-07-19'
   published_at: null
   slug: magnite
