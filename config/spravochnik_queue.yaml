@@ -20,11 +20,11 @@ items:
   term: Criteo
   type: company
   subtype: platform
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-20T08:44:26Z'
   slug: criteo
   pr_url: https://github.com/yuriysklv-hue/media/pull/61
   pr_number: 61
@@ -42,12 +42,14 @@ items:
   term: Advantage+
   type: technology
   developer: Meta
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: advantage-plus
+  pr_url: https://github.com/yuriysklv-hue/media/pull/62
+  pr_number: 62
 - id: conversions-api
   term: Conversions API
   type: technology

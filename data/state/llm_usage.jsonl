@@ -364,3 +364,5 @@
 {"timestamp": "2026-07-19T18:54:54Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 549, "output_tokens": 194, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-20T02:13:00Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1173, "output_tokens": 991, "cost_usd": 0.001407, "item_id": "magnite"}
 {"timestamp": "2026-07-20T02:13:05Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 556, "output_tokens": 233, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-20T08:44:41Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1292, "output_tokens": 899, "cost_usd": 0.001338, "item_id": "advantage-plus"}
+{"timestamp": "2026-07-20T08:44:48Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 545, "output_tokens": 230, "cost_usd": 0.0, "item_id": null}
