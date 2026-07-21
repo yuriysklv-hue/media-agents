@@ -14,6 +14,7 @@ from src.spravochnik.writer import (
     _clean_tags,
     _feedback_section,
     _finalize_meta,
+    _strip_factcheck_from_facts,
     _strip_unconfirmed_sentences,
 )
 
@@ -140,6 +141,45 @@ def test_strip_removes_unconfirmed_bullet():
     assert "Продукт A" in out and "Продукт C" in out
 
 
+# --- writer: вычистка утёкшего маркера из facts (кейс advantage-plus) -------
+
+def test_strip_factcheck_drops_marker_only_facts_field():
+    facts = {
+        "developer": "Meta",
+        "launch_date": "{{fact_check: 'точная дата не подтверждена; ~2022'}}",
+    }
+    out = _strip_factcheck_from_facts(facts)
+    assert "launch_date" not in out  # поле-маркер выброшено целиком
+    assert out["developer"] == "Meta"
+
+
+def test_strip_factcheck_keeps_confirmed_part_of_value():
+    facts = {"category": "Автоматизация {{fact_check: \"нет данных\"}}"}
+    out = _strip_factcheck_from_facts(facts)
+    assert out["category"] == "Автоматизация"
+    assert "{{" not in out["category"]
+
+
+def test_strip_factcheck_cleans_list_values():
+    facts = {"alternatives": ["Custom Algorithms",
+                              "{{fact_check: 'слух'}}", "Яндекс.Директ"]}
+    out = _strip_factcheck_from_facts(facts)
+    assert out["alternatives"] == ["Custom Algorithms", "Яндекс.Директ"]
+
+
+def test_finalize_strips_factcheck_from_facts():
+    item = {"id": "ap", "term": "Advantage+", "type": "technology", "slug": "advantage-plus"}
+    meta = _finalize_meta(
+        {"description": "d", "facts": {
+            "developer": "Meta", "category": "Автоматизация рекламы",
+            "official_url": "https://facebook.com/business/advantage-plus",
+            "launch_date": "{{fact_check: 'дата не подтверждена'}}"}},
+        item,
+    )
+    assert "launch_date" not in meta["facts"]
+    assert "{{" not in str(meta["facts"])
+
+
 # --- rules-QA --------------------------------------------------------------
 
 def _good_company_meta():
@@ -205,6 +245,33 @@ def test_qa_fail_bad_type():
     meta["type"] = "banana"
     r = qa.check_rules(meta, _COMPANY_BODY, set(), "adobe")
     assert r.status == "FAIL"
+
+
+def test_qa_fail_marker_leak_in_body():
+    body = _COMPANY_BODY + "\n\nСпорный факт {{fact_check: \"нет данных\"}}."
+    r = qa.check_rules(_good_company_meta(), body, set(), "adobe")
+    assert r.status == "FAIL" and any("маркер" in e for e in r.errors)
+
+
+def test_qa_fail_marker_leak_in_facts():
+    meta = _good_company_meta()
+    meta["facts"]["founded"] = "{{fact_check: 'год не подтверждён'}}"
+    r = qa.check_rules(meta, _COMPANY_BODY, set(), "adobe")
+    assert r.status == "FAIL" and any("маркер" in e for e in r.errors)
+
+
+def test_qa_fail_restricted_org_without_footnote():
+    body = _COMPANY_BODY + "\n\nИнструмент разработан компанией Meta."
+    r = qa.check_rules(_good_company_meta(), body, set(), "adobe")
+    assert r.status == "FAIL" and any("запрещённая" in e for e in r.errors)
+
+
+def test_qa_pass_restricted_org_with_footnote():
+    from src.utils.legal import add_restricted_org_footnotes
+    body = add_restricted_org_footnotes(
+        _COMPANY_BODY + "\n\nИнструмент разработан компанией Meta.")
+    r = qa.check_rules(_good_company_meta(), body, set(), "adobe")
+    assert r.status == "PASS", r.errors
 
 
 # --- fact_checker: без Wikipedia -------------------------------------------
