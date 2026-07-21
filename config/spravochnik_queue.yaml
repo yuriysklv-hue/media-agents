@@ -112,9 +112,9 @@ items:
   term: Adstra
   type: company
   subtype: platform
-  status: pending
+  status: needs_fix
   iteration: 0
-  feedback: null
+  feedback: facts.founded обязателен для типа company, но пуст; facts.founders обязателен для типа company, но пуст; facts.hq обязателен для типа company, но пуст; facts.official_url обязателен для типа company, но пуст
   created_at: '2026-07-21'
   published_at: null
   slug: adstra
