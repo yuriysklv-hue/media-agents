@@ -94,3 +94,213 @@ items:
   created_at: '2026-07-19'
   published_at: null
   slug: iab
+- id: intermedia-advertising
+  term: InterMedia Advertising
+  type: company
+  subtype: agency
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: intermedia-advertising
+- id: adstra
+  term: Adstra
+  type: company
+  subtype: platform
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adstra
+- id: google-ads-conversion-tracking
+  term: Google Ads Conversion Tracking
+  type: technology
+  developer: Google
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: google-ads-conversion-tracking
+- id: yandex-metrica-api
+  term: Yandex.Metrica API
+  type: technology
+  developer: Яндекс
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: yandex-metrica-api
+- id: server-side-gtm-google-tag-manager
+  term: Server-side GTM (Google Tag Manager)
+  type: technology
+  developer: Google
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: server-side-gtm-google-tag-manager
+- id: adobe-advertising-cloud-dsp
+  term: Adobe Advertising Cloud (DSP)
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-advertising-cloud-dsp
+- id: adobe-experience-cloud
+  term: Adobe Experience Cloud
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-experience-cloud
+- id: adobe-analytics
+  term: Adobe Analytics
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-analytics
+- id: adobe-target
+  term: Adobe Target
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-target
+- id: adobe-campaign
+  term: Adobe Campaign
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-campaign
+- id: adobe-experience-platform
+  term: Adobe Experience Platform
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: adobe-experience-platform
+- id: marketo
+  term: Marketo
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: marketo
+- id: custom-algorithms-adobe
+  term: Custom Algorithms (Adobe)
+  type: technology
+  developer: Adobe
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: custom-algorithms-adobe
+- id: avtomatizirovannye-kampanii-yandex-direkt
+  term: Автоматизированные кампании Яндекс.Директ
+  type: technology
+  developer: Яндекс
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: avtomatizirovannye-kampanii-yandex-direkt
+- id: smart-campaigns-google
+  term: Smart Campaigns (Google)
+  type: technology
+  developer: Google
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: smart-campaigns-google
+- id: criteo-shopper-graph
+  term: Criteo Shopper Graph
+  type: technology
+  developer: Criteo
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: criteo-shopper-graph
+- id: criteo-direct-bidder
+  term: Criteo Direct Bidder
+  type: technology
+  developer: Criteo
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: criteo-direct-bidder
+- id: criteo-retail-media-platform
+  term: Criteo Retail Media Platform
+  type: technology
+  developer: Criteo
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: criteo-retail-media-platform
+- id: walmart-connect
+  term: Walmart Connect
+  type: technology
+  developer: Walmart
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: walmart-connect
+- id: dsp-demand-side-platform
+  term: DSP (Demand-Side Platform)
+  type: term
+  category: concept
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: dsp-demand-side-platform
+- id: w3c
+  term: W3C
+  type: organization
+  full_name: World Wide Web Consortium
+  status: pending
+  iteration: 0
+  feedback: null
+  created_at: '2026-07-21'
+  published_at: null
+  slug: w3c
