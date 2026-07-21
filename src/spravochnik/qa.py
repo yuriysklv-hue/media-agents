@@ -13,8 +13,21 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ..utils.frontmatter import split_front_matter
+from ..utils.legal import MARKER
 from ..utils.logger import get_logger
 from ..utils.state import StateManager
+
+
+def _flatten(value):
+    """Разворачивает вложенные значения facts (строки/списки/словари) в плоский поток."""
+    if isinstance(value, dict):
+        for v in value.values():
+            yield from _flatten(v)
+    elif isinstance(value, (list, tuple)):
+        for v in value:
+            yield from _flatten(v)
+    else:
+        yield value
 
 log = get_logger("spravochnik.qa")
 
@@ -22,6 +35,15 @@ DESCRIPTION_MAX = 160
 BODY_MIN_CHARS = 500
 
 VALID_TYPES = ("company", "technology", "term", "organization")
+
+# Организации, запрещённые в РФ: при упоминании в теле обязана стоять сноска
+# (маркер \\*). Проставляет её код (utils.legal), QA — страховка от пропуска.
+RESTRICTED_ORGS = ("Meta", "Facebook", "Instagram")
+# Внутренний маркер писателя {{fact_check: …}} (и любой {{…}}) в публикацию не идёт.
+_MARKER_LEAK_RE = re.compile(r"\{\{.*?\}\}", re.DOTALL)
+_RESTRICTED_RE = re.compile(
+    r"(?<![\w\\*])(" + "|".join(re.escape(o) for o in RESTRICTED_ORGS) + r")(?![\w])"
+)
 
 # Обязательные поля facts по типу (раздел 2 ТЗ).
 REQUIRED_FACTS = {
@@ -108,6 +130,17 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str) -> Q
     junk = _CJK_RE.findall(body) + _CJK_RE.findall(str(meta.get("title", "")))
     if junk:
         result.fail(f"мусор-кодировка в тексте (CJK-символы): {''.join(junk[:5])}")
+
+    # Утёкший внутренний маркер {{fact_check: …}} / любой {{…}} — в теле или facts
+    # (инцидент Criteo — в теле, advantage-plus — в facts.launch_date).
+    marker_hay = body + " " + " ".join(str(v) for v in _flatten(facts if isinstance(facts, dict) else {}))
+    if _MARKER_LEAK_RE.search(marker_hay):
+        result.fail("внутренний маркер {{…}} утёк в тело или facts (публиковать нельзя)")
+
+    # Запрещённая в РФ организация в теле — но сноски (маркер \\*) нет.
+    if _RESTRICTED_RE.search(body) and MARKER not in body:
+        result.fail("упомянута запрещённая в РФ организация (Meta/Facebook/Instagram) "
+                    "без сноски (маркер \\*)")
 
     tags = meta.get("tags") or []
     if not (3 <= len(tags) <= 7):

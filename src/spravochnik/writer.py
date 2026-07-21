@@ -100,6 +100,48 @@ def _strip_unconfirmed_sentences(body: str) -> str:
     return body.strip() + "\n"
 
 
+def _strip_factcheck_value(value):
+    """Рекурсивно убирает маркер {{fact_check: …}} из значения facts (строка/список/словарь).
+
+    Маркер — сигнал писателя для ТЕЛА (там несущее предложение вырезается целиком
+    в _strip_unconfirmed_sentences). Если модель вписала его в структурное поле
+    facts, вырезать предложение нельзя — вырезаем сам маркер. Возвращает None, если
+    строка после вычистки опустела (вызывающий выкинет поле/элемент).
+    """
+    if isinstance(value, str):
+        cleaned = _FACTCHECK_RE.sub("", value).strip(" \t;,.–—-")
+        return cleaned or None
+    if isinstance(value, list):
+        out = []
+        for v in value:
+            nv = _strip_factcheck_value(v)
+            if nv is not None:
+                out.append(nv)
+        return out
+    if isinstance(value, dict):
+        return _strip_factcheck_from_facts(value)
+    return value
+
+
+def _strip_factcheck_from_facts(facts: dict) -> dict:
+    """Вычищает утёкший маркер {{fact_check: …}} из значений facts.
+
+    Опустевшее после вычистки поле удаляется целиком: лучше отсутствующий факт, чем
+    маркер или голая недостоверная строка в опубликованном материале. Если пустым
+    осталось ОБЯЗАТЕЛЬНОЕ поле (по типу) — это поймает rules-QA (→ FAIL), что верно:
+    материал без обязательного факта публиковать нельзя.
+    """
+    if not isinstance(facts, dict):
+        return facts
+    cleaned: dict = {}
+    for key, value in facts.items():
+        new_value = _strip_factcheck_value(value)
+        if new_value is None or (isinstance(new_value, str) and not new_value.strip()):
+            continue
+        cleaned[key] = new_value
+    return cleaned
+
+
 def _clean_tags(tags) -> list[str]:
     """Дедуп + очистка тегов, кап 7. Таксономия справочника шире новостной —
     жёсткую валидацию против vocabulary не применяем (rules-QA только предупреждает)."""
@@ -124,7 +166,9 @@ def _finalize_meta(meta: dict, item: dict) -> dict:
     meta["tags"] = _clean_tags(meta.get("tags"))
     meta.setdefault("related", [])
     meta["pubDate"] = utcnow_iso()  # момент выхода на 1screen (как у новостей)
-    meta.setdefault("facts", {})
+    # Маркер {{fact_check}} мог утечь в структурные поля facts — там его нельзя
+    # вырезать вместе с предложением (как в теле), поэтому чистим отдельно.
+    meta["facts"] = _strip_factcheck_from_facts(meta.get("facts") or {})
     return meta
 
 

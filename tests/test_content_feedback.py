@@ -75,14 +75,14 @@ def test_finalize_multi_source_emits_additional():
 
 # --- сноска о запрещённых организациях ---
 
-def test_meta_footnote_added_once():
+def test_meta_footnote_marks_every_mention():
     body = "Meta объявила о новом формате. Позже Meta уточнила детали."
     out = add_restricted_org_footnotes(body)
-    assert out.count("\\*") == 2  # один маркер у первого упоминания + один у сноски
-    assert "Meta\\*" in out
+    # оба упоминания помечены + один маркер у самой сноски = 3
+    assert out.count("\\*") == 3
+    assert "Meta\\* объявила" in out
+    assert "Meta\\* уточнила" in out
     assert "экстремистской организацией" in out
-    # второе упоминание Meta не помечается
-    assert "Meta уточнила" in out
 
 
 def test_footnote_idempotent():

@@ -14,6 +14,7 @@ from pathlib import Path
 from ..llm_client import LLMUnavailable, parse_json_response, pipeline_client
 from ..utils.config import fill_prompt, load_config, load_prompt
 from ..utils.frontmatter import split_front_matter
+from ..utils.legal import MARKER, RESTRICTED_ORGS
 from ..utils.logger import get_logger
 from ..utils.state import StateManager
 
@@ -51,6 +52,12 @@ BODY_LIMITS = {"news": (500, 6000), "digest": (2000, 20000)}
 
 
 _Q_OPEN_RE = re.compile(r"<q(\s[^>]*)?>", re.IGNORECASE)
+
+# Запрещённые в РФ организации в теле требуют сноски (маркер \\*). Ставит её код
+# (utils.legal), QA — страховка: упоминание без сноски = комплаенс-риск РКН → FAIL.
+_RESTRICTED_RE = re.compile(
+    r"(?<![\w\\*])(" + "|".join(re.escape(o) for o in RESTRICTED_ORGS) + r")(?![\w])"
+)
 
 
 def check_quote_markup(body: str) -> list[str]:
@@ -182,6 +189,11 @@ def check_rules(meta: dict, body: str, existing_slugs: set[str], slug: str,
         m = pattern.search(body) or pattern.search(title)
         if m:
             result.fail(f"анти-ИИ-паттерн: «{m.group(0)}»")
+
+    # Комплаенс РКН: запрещённая организация в теле — но сноски (маркер \\*) нет.
+    if _RESTRICTED_RE.search(body) and MARKER not in body:
+        result.fail("упомянута запрещённая в РФ организация (Meta/Facebook/Instagram) "
+                    "без сноски (маркер \\*)")
 
     return result
 
