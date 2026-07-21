@@ -402,3 +402,5 @@
 {"timestamp": "2026-07-20T19:45:24Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2220, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-21T01:55:15Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2358, "output_tokens": 910, "cost_usd": 0.001638, "item_id": "first-party-data"}
 {"timestamp": "2026-07-21T01:55:17Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 635, "output_tokens": 23, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-21T08:11:48Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2348, "output_tokens": 786, "cost_usd": 0.001499, "item_id": "iab"}
+{"timestamp": "2026-07-21T08:11:51Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 616, "output_tokens": 94, "cost_usd": 0.0, "item_id": null}

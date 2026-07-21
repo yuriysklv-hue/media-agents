@@ -90,12 +90,14 @@ items:
   term: IAB
   type: organization
   full_name: Interactive Advertising Bureau
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: iab
+  pr_url: https://github.com/yuriysklv-hue/media/pull/72
+  pr_number: 72
 - id: intermedia-advertising
   term: InterMedia Advertising
   type: company
