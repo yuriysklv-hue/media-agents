@@ -42,11 +42,11 @@ items:
   term: Advantage+
   type: technology
   developer: Meta
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-21T01:55:03Z'
   slug: advantage-plus
   pr_url: https://github.com/yuriysklv-hue/media/pull/62
   pr_number: 62
@@ -54,11 +54,11 @@ items:
   term: Conversions API
   type: technology
   developer: Meta
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-21T01:55:03Z'
   slug: conversions-api
   pr_url: https://github.com/yuriysklv-hue/media/pull/64
   pr_number: 64
@@ -66,11 +66,11 @@ items:
   term: CTV (Connected TV)
   type: term
   category: media_format
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-21T01:55:04Z'
   slug: ctv
   pr_url: https://github.com/yuriysklv-hue/media/pull/65
   pr_number: 65
@@ -78,12 +78,14 @@ items:
   term: First-party data
   type: term
   category: concept
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
   published_at: null
   slug: first-party-data
+  pr_url: https://github.com/yuriysklv-hue/media/pull/71
+  pr_number: 71
 - id: iab
   term: IAB
   type: organization
