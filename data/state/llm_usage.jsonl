@@ -424,3 +424,4 @@
 {"timestamp": "2026-07-21T08:28:22Z", "stage": "news_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2252, "output_tokens": 713, "cost_usd": 0.001392, "item_id": "ce48fc11594116f0"}
 {"timestamp": "2026-07-21T08:28:27Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 835, "output_tokens": 167, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-21T08:28:29Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 1141, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-21T13:21:02Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2162, "output_tokens": 628, "cost_usd": 0.001275, "item_id": "intermedia-advertising"}

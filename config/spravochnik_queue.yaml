@@ -78,11 +78,11 @@ items:
   term: First-party data
   type: term
   category: concept
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-21T13:20:53Z'
   slug: first-party-data
   pr_url: https://github.com/yuriysklv-hue/media/pull/71
   pr_number: 71
@@ -90,11 +90,11 @@ items:
   term: IAB
   type: organization
   full_name: Interactive Advertising Bureau
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-19'
-  published_at: null
+  published_at: '2026-07-21T13:20:54Z'
   slug: iab
   pr_url: https://github.com/yuriysklv-hue/media/pull/72
   pr_number: 72
@@ -102,9 +102,9 @@ items:
   term: InterMedia Advertising
   type: company
   subtype: agency
-  status: pending
+  status: needs_fix
   iteration: 0
-  feedback: null
+  feedback: facts.founded обязателен для типа company, но пуст; facts.founders обязателен для типа company, но пуст; facts.hq обязателен для типа company, но пуст; facts.official_url обязателен для типа company, но пуст
   created_at: '2026-07-21'
   published_at: null
   slug: intermedia-advertising
