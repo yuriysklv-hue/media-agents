@@ -134,12 +134,14 @@ items:
   term: Yandex.Metrica API
   type: technology
   developer: Яндекс
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: yandex-metrica-api
+  pr_url: https://github.com/yuriysklv-hue/media/pull/76
+  pr_number: 76
 - id: server-side-gtm-google-tag-manager
   term: Server-side GTM (Google Tag Manager)
   type: technology

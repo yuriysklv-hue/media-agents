@@ -457,3 +457,4 @@
 {"timestamp": "2026-07-21T19:22:52Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 776, "output_tokens": 124, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-21T19:22:56Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 1831, "output_tokens": 113, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-22T01:54:14Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2118, "output_tokens": 943, "cost_usd": 0.001609, "item_id": "google-ads-conversion-tracking"}
+{"timestamp": "2026-07-22T08:12:05Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2144, "output_tokens": 765, "cost_usd": 0.00142, "item_id": "yandex-metrica-api"}
