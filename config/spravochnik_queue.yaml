@@ -134,11 +134,11 @@ items:
   term: Yandex.Metrica API
   type: technology
   developer: Яндекс
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-22T13:25:15Z'
   slug: yandex-metrica-api
   pr_url: https://github.com/yuriysklv-hue/media/pull/76
   pr_number: 76
@@ -146,12 +146,14 @@ items:
   term: Server-side GTM (Google Tag Manager)
   type: technology
   developer: Google
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: server-side-gtm-google-tag-manager
+  pr_url: https://github.com/yuriysklv-hue/media/pull/78
+  pr_number: 78
 - id: adobe-advertising-cloud-dsp
   term: Adobe Advertising Cloud (DSP)
   type: technology
