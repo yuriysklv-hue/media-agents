@@ -488,3 +488,4 @@
 {"timestamp": "2026-07-22T08:34:20Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 798, "output_tokens": 129, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-22T08:34:25Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 1713, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-22T13:25:30Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2133, "output_tokens": 1222, "cost_usd": 0.00192, "item_id": "server-side-gtm-google-tag-manager"}
+{"timestamp": "2026-07-22T19:00:38Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 2130, "output_tokens": 831, "cost_usd": 0.001489, "item_id": "adobe-advertising-cloud-dsp"}
