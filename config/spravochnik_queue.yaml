@@ -122,12 +122,14 @@ items:
   term: Google Ads Conversion Tracking
   type: technology
   developer: Google
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: google-ads-conversion-tracking
+  pr_url: https://github.com/yuriysklv-hue/media/pull/75
+  pr_number: 75
 - id: yandex-metrica-api
   term: Yandex.Metrica API
   type: technology
