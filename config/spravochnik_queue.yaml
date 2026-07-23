@@ -170,12 +170,14 @@ items:
   term: Adobe Experience Cloud
   type: technology
   developer: Adobe
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: adobe-experience-cloud
+  pr_url: https://github.com/yuriysklv-hue/media/pull/81
+  pr_number: 81
 - id: adobe-analytics
   term: Adobe Analytics
   type: technology
