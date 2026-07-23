@@ -528,3 +528,5 @@
 {"timestamp": "2026-07-22T19:23:25Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2227, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-23T02:02:01Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1927, "output_tokens": 845, "cost_usd": 0.00145, "item_id": "adobe-experience-cloud"}
 {"timestamp": "2026-07-23T02:02:08Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 490, "output_tokens": 254, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-23T08:15:42Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1686, "output_tokens": 1237, "cost_usd": 0.001816, "item_id": "adobe-analytics"}
+{"timestamp": "2026-07-23T08:15:49Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 500, "output_tokens": 250, "cost_usd": 0.0, "item_id": null}

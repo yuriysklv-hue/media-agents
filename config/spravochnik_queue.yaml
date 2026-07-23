@@ -122,11 +122,11 @@ items:
   term: Google Ads Conversion Tracking
   type: technology
   developer: Google
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-23T08:15:23Z'
   slug: google-ads-conversion-tracking
   pr_url: https://github.com/yuriysklv-hue/media/pull/75
   pr_number: 75
@@ -146,11 +146,11 @@ items:
   term: Server-side GTM (Google Tag Manager)
   type: technology
   developer: Google
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-23T08:15:24Z'
   slug: server-side-gtm-google-tag-manager
   pr_url: https://github.com/yuriysklv-hue/media/pull/78
   pr_number: 78
@@ -158,11 +158,11 @@ items:
   term: Adobe Advertising Cloud (DSP)
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-23T08:15:24Z'
   slug: adobe-advertising-cloud-dsp
   pr_url: https://github.com/yuriysklv-hue/media/pull/79
   pr_number: 79
@@ -170,11 +170,11 @@ items:
   term: Adobe Experience Cloud
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-23T08:15:25Z'
   slug: adobe-experience-cloud
   pr_url: https://github.com/yuriysklv-hue/media/pull/81
   pr_number: 81
@@ -182,12 +182,14 @@ items:
   term: Adobe Analytics
   type: technology
   developer: Adobe
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: adobe-analytics
+  pr_url: https://github.com/yuriysklv-hue/media/pull/82
+  pr_number: 82
 - id: adobe-target
   term: Adobe Target
   type: technology
