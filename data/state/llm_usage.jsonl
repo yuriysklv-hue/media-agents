@@ -564,3 +564,5 @@
 {"timestamp": "2026-07-23T08:32:31Z", "stage": "news_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 3132, "output_tokens": 729, "cost_usd": 0.001648, "item_id": "45420dca1155a08b"}
 {"timestamp": "2026-07-23T08:32:36Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 799, "output_tokens": 145, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-23T08:32:38Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 1952, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-23T13:29:10Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1700, "output_tokens": 1219, "cost_usd": 0.0018, "item_id": "adobe-target"}
+{"timestamp": "2026-07-23T13:29:16Z", "stage": "spravochnik_factcheck", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 494, "output_tokens": 229, "cost_usd": 0.0, "item_id": null}

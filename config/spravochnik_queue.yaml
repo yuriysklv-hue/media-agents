@@ -182,11 +182,11 @@ items:
   term: Adobe Analytics
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-23T13:28:50Z'
   slug: adobe-analytics
   pr_url: https://github.com/yuriysklv-hue/media/pull/82
   pr_number: 82
@@ -194,12 +194,14 @@ items:
   term: Adobe Target
   type: technology
   developer: Adobe
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: adobe-target
+  pr_url: https://github.com/yuriysklv-hue/media/pull/84
+  pr_number: 84
 - id: adobe-campaign
   term: Adobe Campaign
   type: technology
