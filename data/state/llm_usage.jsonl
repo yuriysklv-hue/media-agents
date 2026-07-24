@@ -601,3 +601,4 @@
 {"timestamp": "2026-07-23T19:18:53Z", "stage": "news_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 3937, "output_tokens": 774, "cost_usd": 0.001914, "item_id": "9b3f93e6509d44f8"}
 {"timestamp": "2026-07-23T19:18:58Z", "stage": "enricher", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 819, "output_tokens": 140, "cost_usd": 0.0, "item_id": null}
 {"timestamp": "2026-07-23T19:19:00Z", "stage": "qa", "provider": "glm", "model": "glm-4.5-flash", "input_tokens": 2829, "output_tokens": 33, "cost_usd": 0.0, "item_id": null}
+{"timestamp": "2026-07-24T01:57:20Z", "stage": "spravochnik_writer", "provider": "deepseek", "model": "deepseek-chat", "input_tokens": 1876, "output_tokens": 1140, "cost_usd": 0.001761, "item_id": "adobe-experience-platform"}
