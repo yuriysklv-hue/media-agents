@@ -230,12 +230,14 @@ items:
   term: Marketo
   type: technology
   developer: Adobe
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: marketo
+  pr_url: https://github.com/yuriysklv-hue/media/pull/88
+  pr_number: 88
 - id: custom-algorithms-adobe
   term: Custom Algorithms (Adobe)
   type: technology
