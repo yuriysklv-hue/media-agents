@@ -206,11 +206,11 @@ items:
   term: Adobe Campaign
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-24T13:21:12Z'
   slug: adobe-campaign
   pr_url: https://github.com/yuriysklv-hue/media/pull/85
   pr_number: 85
@@ -218,11 +218,11 @@ items:
   term: Adobe Experience Platform
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-24T13:21:12Z'
   slug: adobe-experience-platform
   pr_url: https://github.com/yuriysklv-hue/media/pull/87
   pr_number: 87
@@ -230,11 +230,11 @@ items:
   term: Marketo
   type: technology
   developer: Adobe
-  status: review
+  status: published
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
-  published_at: null
+  published_at: '2026-07-24T13:21:13Z'
   slug: marketo
   pr_url: https://github.com/yuriysklv-hue/media/pull/88
   pr_number: 88
@@ -242,12 +242,14 @@ items:
   term: Custom Algorithms (Adobe)
   type: technology
   developer: Adobe
-  status: pending
+  status: review
   iteration: 0
   feedback: null
   created_at: '2026-07-21'
   published_at: null
   slug: custom-algorithms-adobe
+  pr_url: https://github.com/yuriysklv-hue/media/pull/90
+  pr_number: 90
 - id: avtomatizirovannye-kampanii-yandex-direkt
   term: Автоматизированные кампании Яндекс.Директ
   type: technology
